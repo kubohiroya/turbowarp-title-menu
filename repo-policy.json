@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "productName": "TurboWarp Title Menu",
+  "packageType": "extension",
+  "licensePolicy": "mpl-2.0",
+  "readmeLanguages": ["en", "ja"],
+  "canonicalReadme": "README.md",
+  "localizedReadmes": {
+    "ja": "README.ja.md"
+  },
+  "node": {
+    "minimum": "22"
+  },
+  "packageManager": "pnpm",
+  "requiredFiles": ["README.md", "README.ja.md", "LICENSE"],
+  "exceptions": {
+    "upstreamFork": false,
+    "mixedContentLicenses": false,
+    "legacyPackageName": false,
+    "thirdPartyBundle": false
+  },
+  "migrationChecklist": [
+    "Keep package metadata aligned with the TurboWarp Title Menu repository.",
+    "Keep LICENSE as the full Mozilla Public License 2.0 text unless policy records an exception.",
+    "Keep README.md as the canonical English entrypoint and README.ja.md for Japanese content.",
+    "Run pnpm run check before publishing generated artifacts."
+  ]
+}

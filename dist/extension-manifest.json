@@ -1,0 +1,27 @@
+{
+  "formatVersion": 1,
+  "id": "kubohiroyaturbowarptitlemenu",
+  "blocks": [
+    {
+      "opcode": "hasSavedDsl",
+      "blockType": "BOOLEAN",
+      "arguments": []
+    },
+    {
+      "opcode": "savedDslName",
+      "blockType": "REPORTER",
+      "arguments": []
+    },
+    {
+      "opcode": "showMenu",
+      "blockType": "COMMAND",
+      "arguments": []
+    },
+    {
+      "opcode": "showTitle",
+      "blockType": "COMMAND",
+      "arguments": []
+    }
+  ],
+  "menus": []
+}
