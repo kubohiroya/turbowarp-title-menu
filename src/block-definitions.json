@@ -1,0 +1,29 @@
+{
+  "extensionName": "TurboWarp Title Menu",
+  "blocks": [
+    {
+      "opcode": "showTitle",
+      "blockType": "COMMAND",
+      "text": "show title dialog",
+      "description": "Shows the configured title dialog above the TurboWarp stage."
+    },
+    {
+      "opcode": "showMenu",
+      "blockType": "COMMAND",
+      "text": "show application menu",
+      "description": "Shows the generic application menu above the TurboWarp stage."
+    },
+    {
+      "opcode": "hasSavedDsl",
+      "blockType": "BOOLEAN",
+      "text": "has saved DSL source?",
+      "description": "Reports whether a DSL source has been saved in localStorage."
+    },
+    {
+      "opcode": "savedDslName",
+      "blockType": "REPORTER",
+      "text": "saved DSL file name",
+      "description": "Returns the name of the DSL source currently saved in localStorage."
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "declarationDir": "dist/types",
+    "emitDeclarationOnly": false,
+    "noEmit": false,
+    "outDir": "dist/lib",
+    "rootDir": "src"
+  },
+  "include": [
+    "src/application-menu.ts",
+    "src/composition.ts",
+    "src/dom.ts",
+    "src/dsl-storage.ts",
+    "src/events.ts",
+    "src/title-dialog.ts"
+  ]
+}

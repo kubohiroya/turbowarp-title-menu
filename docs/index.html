@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TurboWarp Title Menu documentation</title>
+  <style>
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:900px;margin:0 auto;padding:2rem;line-height:1.6;color:#222}
+    code{background:#f3f3f3;padding:.1em .3em;border-radius:.25em}
+    pre{background:#f6f8fa;padding:1rem;overflow:auto;border-radius:.5rem}
+  </style>
+</head>
+<body>
+  <h1>TurboWarp Title Menu</h1>
+  <p>Reusable title, menu, and DSL source storage controls for TurboWarp projects.</p>
+
+  <h2>Blocks</h2>
+  <ul>
+    <li><code>show title dialog</code>: shows title, author, license, official website, and close controls above the stage.</li>
+    <li><code>show application menu</code>: shows a stage-mounted menu for DSL open, reload, about, and close actions.</li>
+    <li><code>has saved DSL source?</code>: reports whether localStorage contains a saved DSL source.</li>
+    <li><code>saved DSL file name</code>: reports the stored DSL source file name.</li>
+  </ul>
+
+  <h2>Composition API</h2>
+  <p>Host runtimes can import <code>createTitleDialog</code>, <code>createApplicationMenu</code>, and <code>createDslStorage</code> from <code>@kubohiroya/turbowarp-title-menu</code>, or use the <code>TurboWarpTitleMenu</code> global exposed by the standalone extension bundle.</p>
+
+  <h2>Safety</h2>
+  <p>The extension is unsandboxed because it mounts DOM controls and uses browser storage. Load reviewed builds only.</p>
+
+  <h2>Development</h2>
+  <p>See the repository README and architecture documentation for build, test, release, and compatibility details.</p>
+</body>
+</html>

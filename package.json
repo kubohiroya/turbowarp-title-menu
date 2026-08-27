@@ -1,0 +1,80 @@
+{
+  "name": "@kubohiroya/turbowarp-title-menu",
+  "version": "0.1.0",
+  "description": "Reusable title, application menu, and DSL source storage controls for TurboWarp.",
+  "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
+  "license": "MPL-2.0",
+  "homepage": "https://github.com/kubohiroya/turbowarp-title-menu#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kubohiroya/turbowarp-title-menu.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kubohiroya/turbowarp-title-menu/issues"
+  },
+  "keywords": [
+    "turbowarp",
+    "scratch",
+    "extension",
+    "menu",
+    "title",
+    "localstorage",
+    "dsl",
+    "vite",
+    "typescript"
+  ],
+  "type": "module",
+  "types": "./dist/types/composition.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/composition.d.ts",
+      "import": "./dist/lib/composition.js"
+    },
+    "./composition": {
+      "types": "./dist/types/composition.d.ts",
+      "import": "./dist/lib/composition.js"
+    },
+    "./extension": "./dist/turbowarp-title-menu.js",
+    "./extension-manifest.json": "./dist/extension-manifest.json"
+  },
+  "files": [
+    "dist/",
+    "docs/",
+    "schemas/",
+    "src/",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "packageManager": "pnpm@11.11.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "build": "vite build && tsc -p tsconfig.lib.json",
+    "lint": "eslint src tests vite.config.ts",
+    "test": "vitest run",
+    "docs": "node scripts/generate-readme.mjs",
+    "docs:check": "pnpm run docs && git diff --exit-code -- README.md",
+    "repo:check": "node scripts/check-repo.mjs",
+    "pack:check": "npm pack --dry-run --ignore-scripts",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run docs:check && pnpm run check:dist && pnpm run repo:check && pnpm run pack:check",
+    "check:dist": "pnpm run build && node scripts/check-dist.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@kubohiroya/vite-plugin-turbowarp-extension": "0.1.1",
+    "@types/node": "^24.13.3",
+    "eslint": "^9.39.5",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.66.0",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.10"
+  }
+}
