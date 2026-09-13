@@ -16,6 +16,9 @@ interface ScratchApi {
     renderer?: {
       canvas?: HTMLCanvasElement;
     };
+    runtime?: {
+      startHats?(opcode: string, matchFields?: Record<string, unknown>): unknown;
+    };
   };
   BlockType: Record<'COMMAND' | 'REPORTER' | 'BOOLEAN' | 'HAT', string>;
   ArgumentType: Record<'STRING' | 'NUMBER' | 'BOOLEAN', string>;

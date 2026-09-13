@@ -8,8 +8,33 @@
       "arguments": []
     },
     {
-      "opcode": "savedDslName",
+      "opcode": "lastDslError",
       "blockType": "REPORTER",
+      "arguments": []
+    },
+    {
+      "opcode": "openedDslName",
+      "blockType": "REPORTER",
+      "arguments": []
+    },
+    {
+      "opcode": "openedDslSource",
+      "blockType": "REPORTER",
+      "arguments": []
+    },
+    {
+      "opcode": "reloadOpenedDsl",
+      "blockType": "COMMAND",
+      "arguments": []
+    },
+    {
+      "opcode": "savedDslCount",
+      "blockType": "REPORTER",
+      "arguments": []
+    },
+    {
+      "opcode": "showDslFiles",
+      "blockType": "COMMAND",
       "arguments": []
     },
     {
@@ -20,6 +45,11 @@
     {
       "opcode": "showTitle",
       "blockType": "COMMAND",
+      "arguments": []
+    },
+    {
+      "opcode": "whenDslSourceOpened",
+      "blockType": "HAT",
       "arguments": []
     }
   ],

@@ -1,13 +1,16 @@
+import {createAppShellApplicationMenu} from '@kubohiroya/turbowarp-app-shell';
+
 import {extensionConfig} from './config.js';
-import {createApplicationMenu} from './application-menu.js';
-import {createDslStorage} from './dsl-storage.js';
+import {createDslFilesDialog} from './dsl-files-dialog.js';
+import {createDslStore} from './dsl-store.js';
 import {dslOpenEventName, dslReloadEventName} from './events.js';
 import {createTitleDialog} from './title-dialog.js';
 import {TurboWarpTitleMenuExtension} from './extension.js';
 
 const publicApi = Object.freeze({
-  createApplicationMenu,
-  createDslStorage,
+  createApplicationMenu: createAppShellApplicationMenu,
+  createDslFilesDialog,
+  createDslStore,
   createTitleDialog,
   dslOpenEventName,
   dslReloadEventName
