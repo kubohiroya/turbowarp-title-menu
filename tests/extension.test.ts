@@ -418,3 +418,39 @@ describe('block surface', () => {
     expect(args['ACTION']?.['menu']).toBe('menuActions');
   });
 });
+
+describe('menu rebuild edge cases', () => {
+  it('closes an open menu instead of failing when every action is cleared', () => {
+    const extension = createExtension();
+    extension.showMenu();
+    expect(descendants(stage).map((node) => node.textContent)).toContain('About');
+
+    expect(() => extension.clearAppMenuActions()).not.toThrow();
+    expect(descendants(stage).map((node) => node.textContent)).not.toContain('About');
+  });
+
+  it('reopens the menu once the project registers its own action', () => {
+    const extension = createExtension();
+    extension.showMenu();
+    extension.clearAppMenuActions();
+    extension.addAppMenuAction({ACTION: 'pair', LABEL: 'Pair'});
+    extension.showMenu();
+
+    expect(descendants(stage).map((node) => node.textContent)).toContain('Pair');
+  });
+
+  it('does nothing when the menu is shown with no registered action', () => {
+    const extension = createExtension();
+    extension.clearAppMenuActions();
+
+    expect(() => extension.showMenu()).not.toThrow();
+    expect(descendants(stage).map((node) => node.textContent)).not.toContain('About');
+  });
+
+  it('adds an action while the menu is closed without opening it', () => {
+    const extension = createExtension();
+    extension.addAppMenuAction({ACTION: 'pair', LABEL: 'Pair'});
+
+    expect(descendants(stage).map((node) => node.textContent)).not.toContain('Pair');
+  });
+});

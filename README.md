@@ -48,7 +48,7 @@ The reviewed JavaScript build is committed to this repository, so users do not n
 Install an exact version that you have reviewed:
 
 ```bash
-pnpm add --save-exact @kubohiroya/turbowarp-title-menu@0.2.0
+pnpm add --save-exact @kubohiroya/turbowarp-title-menu@0.2.1
 ```
 
 Load the standalone bundle from:
@@ -60,7 +60,7 @@ node_modules/@kubohiroya/turbowarp-title-menu/dist/turbowarp-title-menu.js
 A version-pinned CDN URL is:
 
 ```text
-https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-title-menu@0.2.0/dist/turbowarp-title-menu.js
+https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-title-menu@0.2.1/dist/turbowarp-title-menu.js
 ```
 
 ## Quick start
@@ -235,6 +235,7 @@ Returns the most recent DSL storage failure in the interface language, or an emp
 | Official website | The title dialog opens the configured website URL in a new browser tab. |
 | Built-in menu actions | `files`, `reload`, `about`, and `close` are pre-registered and keep their own behavior. They also start the hat, and `clear app menu actions` removes them. |
 | Changing the menu | Adding or clearing an action rebuilds the menu. A menu that was on screen is shown again rather than disappearing. |
+| An empty menu | `show application menu` does nothing while no action is registered, and clearing every action closes an open menu. The underlying primitive refuses to build a menu with no actions, so a project that clears the set before installing its own is not interrupted. |
 | Adding a DSL file | `Add file` opens a browser file picker and stores the chosen source. It does not open the file; the operator presses `Open` when the project should use it. |
 | Renaming | Names are unique. Renaming a file to a name another file already uses fails and leaves both files unchanged. |
 | Deleting | Deleting asks for a second confirming click, and deleting the open file clears the opened source. |

@@ -33,7 +33,7 @@ IndexedDBはoriginごとに分かれます。TurboWarp Web、TurboWarp Desktop�
 ## インストール
 
 ```bash
-pnpm add --save-exact @kubohiroya/turbowarp-title-menu@0.2.0
+pnpm add --save-exact @kubohiroya/turbowarp-title-menu@0.2.1
 ```
 
 TurboWarpでは `dist/turbowarp-title-menu.js` をCustom Extensionとして読み込み、sandboxなしの実行を許可します。
@@ -203,6 +203,7 @@ IndexedDBに保管しているDSLファイルの件数を返します。
 |---|---|
 | 組み込みのメニュー項目 | `files`／`reload`／`about`／`close` は最初から登録されており、それぞれの動作を保ちます。同時にhatも発火します。`clear app menu actions` で外せます。 |
 | メニューの変更 | 項目の追加や消去でメニューを作り直します。表示中だった場合は消えずに再表示します。 |
+| 項目が0件のとき | 1件も登録されていない状態では `show application menu` は何もせず、すべて消すと表示中のメニューは閉じます。土台のprimitiveが0件のメニューを作れないため、自分の項目を入れる前に全消しするプロジェクトが途中で止まらないようにしています。 |
 | ファイルの追加 | 「ファイルを追加」はファイル選択ダイアログを開き、選ばれた内容を保管します。開きはしません。使うときは「開く」を押します。 |
 | 名前の変更 | 名前は一意です。他のファイルと同じ名前にしようとすると失敗し、どちらのファイルも変わりません。 |
 | 削除 | 削除には確認のためもう一度クリックが必要です。開いているファイルを削除すると、開いている内容も解除されます。 |

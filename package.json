@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-title-menu",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Reusable title, application menu, and DSL source storage controls for TurboWarp.",
   "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
   "license": "MPL-2.0",

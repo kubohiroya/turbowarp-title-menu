@@ -1307,7 +1307,15 @@
     showTitle() {
       this.ensureTitleDialog().show(this.locale());
     }
+    /**
+     * Shows the application menu.
+     *
+     * An empty registry does nothing: the underlying primitive requires at least one action, and a
+     * project that cleared the actions to install its own should not be interrupted by an error
+     * between the two steps.
+     */
     showMenu() {
+      if (this.menuActions.length === 0) return;
       this.ensureApplicationMenu().show(this.locale());
       this.menuVisible = true;
     }
@@ -1396,12 +1404,18 @@
      *
      * The app-shell primitive fixes its actions at construction, so a changed list means a new menu.
      * A menu that was on screen is shown again, because a project that adds an action while the menu
-     * is open should not have it silently disappear.
+     * is open should not have it silently disappear. Clearing every action closes the menu instead,
+     * because the primitive refuses to build one with no actions.
      */
     rebuildMenu() {
       this.applicationMenu?.dispose();
       this.applicationMenu = null;
-      if (this.menuVisible) this.showMenu();
+      if (!this.menuVisible) return;
+      if (this.menuActions.length === 0) {
+        this.menuVisible = false;
+        return;
+      }
+      this.showMenu();
     }
     selectMenuAction(id) {
       Scratch.vm?.runtime?.startHats?.(`${extensionConfig.id}_whenAppMenuActionSelected`, { ACTION: id });
