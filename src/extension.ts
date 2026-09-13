@@ -94,7 +94,14 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
     this.menuVisible = true;
   }
 
-  /** Backs the dynamic `menuActions` dropdown, so it always lists what the project registered. */
+  /**
+   * Backs the dynamic `menuActions` dropdown, so it always lists what the project registered.
+   *
+   * The menu must refuse reporters. Scratch turns a reporter-accepting menu argument into an input
+   * holding a shadow block, and `startHats` matches a hat against its *fields*, so the action hat
+   * would never fire for a specific action. Refusing reporters keeps the argument an inline
+   * dropdown, which is what the match reads.
+   */
   public menuActionItems(): Array<{text: string; value: string}> {
     if (this.menuActions.length === 0) return [{text: '\u2014', value: ''}];
     const locale = this.locale();

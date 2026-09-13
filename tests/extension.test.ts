@@ -408,7 +408,7 @@ describe('block surface', () => {
   it('publishes the dynamic action menu', () => {
     const info = createExtension().getInfo();
     const menus = info['menus'] as Record<string, {acceptReporters: boolean; items: string}>;
-    expect(menus['menuActions']).toEqual({acceptReporters: true, items: 'menuActionItems'});
+    expect(menus['menuActions']).toEqual({acceptReporters: false, items: 'menuActionItems'});
   });
 
   it('passes the menu reference through to the menu-backed arguments', () => {
@@ -452,5 +452,16 @@ describe('menu rebuild edge cases', () => {
     extension.addAppMenuAction({ACTION: 'pair', LABEL: 'Pair'});
 
     expect(descendants(stage).map((node) => node.textContent)).not.toContain('Pair');
+  });
+});
+
+describe('menu argument shape', () => {
+  it('refuses reporters, because a hat is matched against its fields', () => {
+    const info = createExtension().getInfo();
+    const menus = info['menus'] as Record<string, {acceptReporters: boolean}>;
+
+    // A reporter-accepting menu becomes an input holding a shadow block, and `startHats` reads
+    // fields, so `when app menu action [x] selected` would never fire for a specific action.
+    expect(menus['menuActions']?.acceptReporters).toBe(false);
   });
 });

@@ -101,7 +101,7 @@
   "menus": [
     {
       "id": "menuActions",
-      "acceptReporters": true
+      "acceptReporters": false
     }
   ]
 }

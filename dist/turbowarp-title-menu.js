@@ -1183,7 +1183,7 @@
     });
   }
   const extensionName = "TurboWarp Title Menu";
-  const menus = { "menuActions": { "acceptReporters": true, "items": "menuActionItems" } };
+  const menus = { "menuActions": { "acceptReporters": false, "items": "menuActionItems" } };
   const blocks = [{ "opcode": "showTitle", "blockType": "COMMAND", "text": "show title dialog", "description": "Shows the configured title dialog above the TurboWarp stage." }, { "opcode": "showMenu", "blockType": "COMMAND", "text": "show application menu", "description": "Shows the application menu above the TurboWarp stage." }, { "opcode": "addAppMenuAction", "blockType": "COMMAND", "text": "add app menu action [ACTION] labelled [LABEL]", "description": "Adds an application menu action this project owns, or relabels one it already added.", "arguments": { "ACTION": { "type": "STRING", "defaultValue": "start" }, "LABEL": { "type": "STRING", "defaultValue": "Start" } } }, { "opcode": "clearAppMenuActions", "blockType": "COMMAND", "text": "clear app menu actions", "description": "Removes every application menu action, including the built-in ones, so a project can define its own set." }, { "opcode": "setAppMenuActionEnabled", "blockType": "COMMAND", "text": "set app menu action [ACTION] enabled [ENABLED]", "description": "Enables or disables one application menu action.", "arguments": { "ACTION": { "type": "STRING", "menu": "menuActions" }, "ENABLED": { "type": "BOOLEAN", "defaultValue": true } } }, { "opcode": "whenAppMenuActionSelected", "blockType": "HAT", "text": "when app menu action [ACTION] selected", "description": "Runs when the operator selects the named application menu action.", "arguments": { "ACTION": { "type": "STRING", "menu": "menuActions" } } }, { "opcode": "showDslFiles", "blockType": "COMMAND", "text": "show DSL file manager", "description": "Shows the dialog that adds, opens, renames, deletes, and sorts stored DSL files." }, { "opcode": "whenDslSourceOpened", "blockType": "HAT", "text": "when a DSL source is opened", "description": "Runs after the operator opens a stored DSL file, or after the opened source is announced again." }, { "opcode": "reloadOpenedDsl", "blockType": "COMMAND", "text": "reload the opened DSL source", "description": "Announces the currently opened DSL source again without showing a dialog." }, { "opcode": "openedDslName", "blockType": "REPORTER", "text": "opened DSL file name", "description": "Returns the name of the DSL file that is currently open, or an empty string." }, { "opcode": "openedDslSource", "blockType": "REPORTER", "text": "opened DSL source", "description": "Returns the text of the DSL file that is currently open, or an empty string." }, { "opcode": "hasSavedDsl", "blockType": "BOOLEAN", "text": "has a saved DSL file?", "description": "Reports whether at least one DSL file is stored in IndexedDB." }, { "opcode": "savedDslCount", "blockType": "REPORTER", "text": "saved DSL file count", "description": "Returns how many DSL files are stored in IndexedDB." }, { "opcode": "lastDslError", "blockType": "REPORTER", "text": "last DSL storage error", "description": "Returns the most recent DSL storage failure in the interface language, or an empty string." }];
   const definitions = {
     extensionName,
@@ -1319,7 +1319,14 @@
       this.ensureApplicationMenu().show(this.locale());
       this.menuVisible = true;
     }
-    /** Backs the dynamic `menuActions` dropdown, so it always lists what the project registered. */
+    /**
+     * Backs the dynamic `menuActions` dropdown, so it always lists what the project registered.
+     *
+     * The menu must refuse reporters. Scratch turns a reporter-accepting menu argument into an input
+     * holding a shadow block, and `startHats` matches a hat against its *fields*, so the action hat
+     * would never fire for a specific action. Refusing reporters keeps the argument an inline
+     * dropdown, which is what the match reads.
+     */
     menuActionItems() {
       if (this.menuActions.length === 0) return [{ text: "—", value: "" }];
       const locale = this.locale();

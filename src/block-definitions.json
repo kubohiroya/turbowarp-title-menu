@@ -2,7 +2,7 @@
   "extensionName": "TurboWarp Title Menu",
   "menus": {
     "menuActions": {
-      "acceptReporters": true,
+      "acceptReporters": false,
       "items": "menuActionItems"
     }
   },
