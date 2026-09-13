@@ -11,7 +11,7 @@ TurboWarp拡張やPackager実行環境で使える、汎用のタイトル表示
 ## できること
 
 - 起動直後のタイトル表示として、タイトル、作者名、ライセンス、公式Webサイト、閉じるボタンを表示します。
-- ステージ上にアプリケーションメニューを表示します。共有primitiveの`@kubohiroya/turbowarp-app-shell`の上に作っているため、ホスト側は固定の項目ではなく自分の操作を定義できます。
+- ステージ上にアプリケーションメニューを表示します。共有primitiveの`@kubohiroya/turbowarp-app-shell`の上に作っており、項目はblockから定義してhatで受けられるため、固定の項目に縛られません。
 - DSLファイル管理ダイアログで、追加、開く、名前の変更、個別削除ができ、名前・更新日時・サイズで並べ替えできます。
 - 複数のDSLファイルをIndexedDBに保管します。TM Kamishibai専用ではありません。
 - ホスト側ランタイムから直接組み込める Composition API を提供します。
@@ -49,6 +49,19 @@ when green flag clicked
 show title dialog
 ```
 
+メニューは4つの組み込み項目から始まります。合わない場合は、プロジェクト自身の語彙に置き換えます。
+
+```text
+when green flag clicked
+clear app menu actions
+add app menu action [pair] labelled [統合PCとつなぐ]
+add app menu action [calibrate] labelled [カメラを校正する]
+show application menu
+
+when app menu action [pair v] selected
+broadcast [start pairing v]
+```
+
 DSLを読み込んだ後の処理は `when a DSL source is opened` から始めます。
 
 ```text
@@ -75,6 +88,42 @@ TurboWarpステージ上にアプリケーションメニューを表示しま�
 |---|---|
 | Type | Command |
 | Opcode | `showMenu` |
+
+### `add app menu action [ACTION] labelled [LABEL]`
+
+このプロジェクトが持つメニュー項目を追加します。すでに追加済みのIDなら表示名を変更します。
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `addAppMenuAction` |
+
+### `clear app menu actions`
+
+組み込みを含め、すべてのメニュー項目を削除します。プロジェクト自身の項目だけにしたいときに使います。
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `clearAppMenuActions` |
+
+### `set app menu action [ACTION] enabled [ENABLED]`
+
+メニュー項目の1つを有効／無効にします。
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `setAppMenuActionEnabled` |
+
+### `when app menu action [ACTION] selected`
+
+運用者がそのメニュー項目を選んだときに実行されます。
+
+| Property | Value |
+|---|---|
+| Type | Hat |
+| Opcode | `whenAppMenuActionSelected` |
 
 ### `show DSL file manager`
 
@@ -152,6 +201,8 @@ IndexedDBに保管しているDSLファイルの件数を返します。
 
 | 場面 | 動作 |
 |---|---|
+| 組み込みのメニュー項目 | `files`／`reload`／`about`／`close` は最初から登録されており、それぞれの動作を保ちます。同時にhatも発火します。`clear app menu actions` で外せます。 |
+| メニューの変更 | 項目の追加や消去でメニューを作り直します。表示中だった場合は消えずに再表示します。 |
 | ファイルの追加 | 「ファイルを追加」はファイル選択ダイアログを開き、選ばれた内容を保管します。開きはしません。使うときは「開く」を押します。 |
 | 名前の変更 | 名前は一意です。他のファイルと同じ名前にしようとすると失敗し、どちらのファイルも変わりません。 |
 | 削除 | 削除には確認のためもう一度クリックが必要です。開いているファイルを削除すると、開いている内容も解除されます。 |

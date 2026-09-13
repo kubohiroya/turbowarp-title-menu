@@ -1,5 +1,11 @@
 {
   "extensionName": "TurboWarp Title Menu",
+  "menus": {
+    "menuActions": {
+      "acceptReporters": true,
+      "items": "menuActionItems"
+    }
+  },
   "blocks": [
     {
       "opcode": "showTitle",
@@ -12,6 +18,56 @@
       "blockType": "COMMAND",
       "text": "show application menu",
       "description": "Shows the application menu above the TurboWarp stage."
+    },
+    {
+      "opcode": "addAppMenuAction",
+      "blockType": "COMMAND",
+      "text": "add app menu action [ACTION] labelled [LABEL]",
+      "description": "Adds an application menu action this project owns, or relabels one it already added.",
+      "arguments": {
+        "ACTION": {
+          "type": "STRING",
+          "defaultValue": "start"
+        },
+        "LABEL": {
+          "type": "STRING",
+          "defaultValue": "Start"
+        }
+      }
+    },
+    {
+      "opcode": "clearAppMenuActions",
+      "blockType": "COMMAND",
+      "text": "clear app menu actions",
+      "description": "Removes every application menu action, including the built-in ones, so a project can define its own set."
+    },
+    {
+      "opcode": "setAppMenuActionEnabled",
+      "blockType": "COMMAND",
+      "text": "set app menu action [ACTION] enabled [ENABLED]",
+      "description": "Enables or disables one application menu action.",
+      "arguments": {
+        "ACTION": {
+          "type": "STRING",
+          "menu": "menuActions"
+        },
+        "ENABLED": {
+          "type": "BOOLEAN",
+          "defaultValue": true
+        }
+      }
+    },
+    {
+      "opcode": "whenAppMenuActionSelected",
+      "blockType": "HAT",
+      "text": "when app menu action [ACTION] selected",
+      "description": "Runs when the operator selects the named application menu action.",
+      "arguments": {
+        "ACTION": {
+          "type": "STRING",
+          "menu": "menuActions"
+        }
+      }
     },
     {
       "opcode": "showDslFiles",

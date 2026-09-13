@@ -17,11 +17,12 @@ import {createTitleDialog, type TitleDialog} from './title-dialog';
 type ApplicationMenu = ReturnType<typeof createAppShellApplicationMenu>;
 
 type BlockTypeName = 'COMMAND' | 'REPORTER' | 'BOOLEAN' | 'HAT';
-type ArgumentTypeName = 'STRING';
+type ArgumentTypeName = 'STRING' | 'NUMBER' | 'BOOLEAN';
 
 interface DefinitionArgument {
   type: ArgumentTypeName;
-  defaultValue: string;
+  defaultValue?: string | number | boolean;
+  menu?: string;
 }
 
 interface BlockDefinition {
@@ -36,6 +37,17 @@ const blockDefinitions = definitions.blocks as readonly BlockDefinition[];
 
 const dslFileAccept = '.txt,.yaml,.yml,.json,.k4,.kamishibai';
 
+/** Reserved action IDs the extension handles itself. A project may still remove or relabel them. */
+const builtinActionIds = ['files', 'reload', 'about', 'close'] as const;
+
+type BuiltinActionId = (typeof builtinActionIds)[number];
+
+interface MenuActionEntry {
+  id: string;
+  labels: Record<SupportedLocale, string>;
+  enabled: boolean;
+}
+
 function stageMount(): HTMLElement | undefined {
   return Scratch.vm?.renderer?.canvas?.parentElement ?? globalThis.document?.body;
 }
@@ -47,6 +59,12 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
   private store: DslStore | null = null;
   private openedRecord: DslFileRecord | null = null;
   private lastError = '';
+  private menuActions: MenuActionEntry[] = builtinActionIds.map((id) => ({
+    id,
+    labels: {en: menuLocales.en[id], ja: menuLocales.ja[id]},
+    enabled: true
+  }));
+  private menuVisible = false;
 
   public getInfo(): Record<string, unknown> {
     return {
@@ -54,7 +72,8 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
       name: Scratch.translate(definitions.extensionName),
       docsURI: extensionConfig.docsURI,
       blockIconURI: extensionConfig.blockIconURI,
-      blocks: blockDefinitions.map((block) => this.toScratchBlock(block))
+      blocks: blockDefinitions.map((block) => this.toScratchBlock(block)),
+      menus: definitions.menus
     };
   }
 
@@ -64,6 +83,45 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
 
   public showMenu(): void {
     this.ensureApplicationMenu().show(this.locale());
+    this.menuVisible = true;
+  }
+
+  /** Backs the dynamic `menuActions` dropdown, so it always lists what the project registered. */
+  public menuActionItems(): Array<{text: string; value: string}> {
+    if (this.menuActions.length === 0) return [{text: '\u2014', value: ''}];
+    const locale = this.locale();
+    return this.menuActions.map((action) => ({text: action.labels[locale], value: action.id}));
+  }
+
+  public addAppMenuAction(args: {ACTION: unknown; LABEL: unknown}): void {
+    const id = Scratch.Cast.toString(args.ACTION).trim();
+    if (id.length === 0) return;
+    const label = Scratch.Cast.toString(args.LABEL);
+    const existing = this.menuActions.find((action) => action.id === id);
+    if (existing === undefined) {
+      this.menuActions.push({id, labels: {en: label, ja: label}, enabled: true});
+    } else {
+      existing.labels = {en: label, ja: label};
+    }
+    this.rebuildMenu();
+  }
+
+  public clearAppMenuActions(): void {
+    this.menuActions = [];
+    this.rebuildMenu();
+  }
+
+  public setAppMenuActionEnabled(args: {ACTION: unknown; ENABLED: unknown}): void {
+    const id = Scratch.Cast.toString(args.ACTION);
+    const action = this.menuActions.find((entry) => entry.id === id);
+    if (action === undefined) return;
+    action.enabled = Scratch.Cast.toBoolean(args.ENABLED);
+    this.applicationMenu?.setActionState(id, {enabled: action.enabled});
+  }
+
+  /** Started by the menu callback, so the handler only has to accept the match. */
+  public whenAppMenuActionSelected(): boolean {
+    return true;
   }
 
   public showDslFiles(): Promise<unknown> {
@@ -124,6 +182,33 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
     this.lastError = describeStoreError(this.locale(), error);
   }
 
+  /**
+   * Rebuilds the menu after its action list changed.
+   *
+   * The app-shell primitive fixes its actions at construction, so a changed list means a new menu.
+   * A menu that was on screen is shown again, because a project that adds an action while the menu
+   * is open should not have it silently disappear.
+   */
+  private rebuildMenu(): void {
+    this.applicationMenu?.dispose();
+    this.applicationMenu = null;
+    if (this.menuVisible) this.showMenu();
+  }
+
+  private selectMenuAction(id: string): void {
+    Scratch.vm?.runtime?.startHats?.(`${extensionConfig.id}_whenAppMenuActionSelected`, {ACTION: id});
+    if (!builtinActionIds.includes(id as BuiltinActionId)) return;
+    if (id === 'files') void this.showDslFiles();
+    if (id === 'reload') this.reloadOpenedDsl();
+    if (id === 'about') this.showTitle();
+    if (id === 'close') this.hideMenu();
+  }
+
+  private hideMenu(): void {
+    this.applicationMenu?.hide();
+    this.menuVisible = false;
+  }
+
   private announce(eventName: string, record: DslFileRecord): void {
     dispatchDslSourceEvent(eventName, record);
     Scratch.vm?.runtime?.startHats?.(`${extensionConfig.id}_whenDslSourceOpened`);
@@ -153,20 +238,16 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
     if (this.applicationMenu) return this.applicationMenu;
     const mount = stageMount();
     if (mount === undefined) throw new TypeError('a stage container is required to show the menu');
-    const labels = (key: keyof (typeof menuLocales)['en']) => ({
-      en: menuLocales.en[key],
-      ja: menuLocales.ja[key]
-    });
     this.applicationMenu = createAppShellApplicationMenu({
       document: globalThis.document,
       mount,
       initialLocale: this.locale(),
-      actions: [
-        {id: 'files', labels: labels('files'), icon: {text: '\u{1F4C2}'}, onSelect: () => this.showDslFiles()},
-        {id: 'reload', labels: labels('reload'), icon: {text: '↻'}, onSelect: () => this.reloadOpenedDsl()},
-        {id: 'about', labels: labels('about'), icon: {text: 'i'}, onSelect: () => this.showTitle()},
-        {id: 'close', labels: labels('close'), icon: {text: 'x'}, onSelect: () => this.applicationMenu?.hide()}
-      ]
+      actions: this.menuActions.map((action) => ({
+        id: action.id,
+        labels: action.labels,
+        enabled: action.enabled,
+        onSelect: () => this.selectMenuAction(action.id)
+      }))
     });
     return this.applicationMenu;
   }
@@ -241,7 +322,8 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
           name,
           {
             type: Scratch.ArgumentType[argument.type],
-            defaultValue: argument.defaultValue
+            ...(argument.defaultValue === undefined ? {} : {defaultValue: argument.defaultValue}),
+            ...(argument.menu === undefined ? {} : {menu: argument.menu})
           }
         ])
       )

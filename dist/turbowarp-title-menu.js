@@ -1183,9 +1183,11 @@
     });
   }
   const extensionName = "TurboWarp Title Menu";
-  const blocks = [{ "opcode": "showTitle", "blockType": "COMMAND", "text": "show title dialog", "description": "Shows the configured title dialog above the TurboWarp stage." }, { "opcode": "showMenu", "blockType": "COMMAND", "text": "show application menu", "description": "Shows the application menu above the TurboWarp stage." }, { "opcode": "showDslFiles", "blockType": "COMMAND", "text": "show DSL file manager", "description": "Shows the dialog that adds, opens, renames, deletes, and sorts stored DSL files." }, { "opcode": "whenDslSourceOpened", "blockType": "HAT", "text": "when a DSL source is opened", "description": "Runs after the operator opens a stored DSL file, or after the opened source is announced again." }, { "opcode": "reloadOpenedDsl", "blockType": "COMMAND", "text": "reload the opened DSL source", "description": "Announces the currently opened DSL source again without showing a dialog." }, { "opcode": "openedDslName", "blockType": "REPORTER", "text": "opened DSL file name", "description": "Returns the name of the DSL file that is currently open, or an empty string." }, { "opcode": "openedDslSource", "blockType": "REPORTER", "text": "opened DSL source", "description": "Returns the text of the DSL file that is currently open, or an empty string." }, { "opcode": "hasSavedDsl", "blockType": "BOOLEAN", "text": "has a saved DSL file?", "description": "Reports whether at least one DSL file is stored in IndexedDB." }, { "opcode": "savedDslCount", "blockType": "REPORTER", "text": "saved DSL file count", "description": "Returns how many DSL files are stored in IndexedDB." }, { "opcode": "lastDslError", "blockType": "REPORTER", "text": "last DSL storage error", "description": "Returns the most recent DSL storage failure in the interface language, or an empty string." }];
+  const menus = { "menuActions": { "acceptReporters": true, "items": "menuActionItems" } };
+  const blocks = [{ "opcode": "showTitle", "blockType": "COMMAND", "text": "show title dialog", "description": "Shows the configured title dialog above the TurboWarp stage." }, { "opcode": "showMenu", "blockType": "COMMAND", "text": "show application menu", "description": "Shows the application menu above the TurboWarp stage." }, { "opcode": "addAppMenuAction", "blockType": "COMMAND", "text": "add app menu action [ACTION] labelled [LABEL]", "description": "Adds an application menu action this project owns, or relabels one it already added.", "arguments": { "ACTION": { "type": "STRING", "defaultValue": "start" }, "LABEL": { "type": "STRING", "defaultValue": "Start" } } }, { "opcode": "clearAppMenuActions", "blockType": "COMMAND", "text": "clear app menu actions", "description": "Removes every application menu action, including the built-in ones, so a project can define its own set." }, { "opcode": "setAppMenuActionEnabled", "blockType": "COMMAND", "text": "set app menu action [ACTION] enabled [ENABLED]", "description": "Enables or disables one application menu action.", "arguments": { "ACTION": { "type": "STRING", "menu": "menuActions" }, "ENABLED": { "type": "BOOLEAN", "defaultValue": true } } }, { "opcode": "whenAppMenuActionSelected", "blockType": "HAT", "text": "when app menu action [ACTION] selected", "description": "Runs when the operator selects the named application menu action.", "arguments": { "ACTION": { "type": "STRING", "menu": "menuActions" } } }, { "opcode": "showDslFiles", "blockType": "COMMAND", "text": "show DSL file manager", "description": "Shows the dialog that adds, opens, renames, deletes, and sorts stored DSL files." }, { "opcode": "whenDslSourceOpened", "blockType": "HAT", "text": "when a DSL source is opened", "description": "Runs after the operator opens a stored DSL file, or after the opened source is announced again." }, { "opcode": "reloadOpenedDsl", "blockType": "COMMAND", "text": "reload the opened DSL source", "description": "Announces the currently opened DSL source again without showing a dialog." }, { "opcode": "openedDslName", "blockType": "REPORTER", "text": "opened DSL file name", "description": "Returns the name of the DSL file that is currently open, or an empty string." }, { "opcode": "openedDslSource", "blockType": "REPORTER", "text": "opened DSL source", "description": "Returns the text of the DSL file that is currently open, or an empty string." }, { "opcode": "hasSavedDsl", "blockType": "BOOLEAN", "text": "has a saved DSL file?", "description": "Reports whether at least one DSL file is stored in IndexedDB." }, { "opcode": "savedDslCount", "blockType": "REPORTER", "text": "saved DSL file count", "description": "Returns how many DSL files are stored in IndexedDB." }, { "opcode": "lastDslError", "blockType": "REPORTER", "text": "last DSL storage error", "description": "Returns the most recent DSL storage failure in the interface language, or an empty string." }];
   const definitions = {
     extensionName,
+    menus,
     blocks
   };
   const titleLocales = Object.freeze({
@@ -1273,6 +1275,7 @@
   }
   const blockDefinitions = definitions.blocks;
   const dslFileAccept = ".txt,.yaml,.yml,.json,.k4,.kamishibai";
+  const builtinActionIds = ["files", "reload", "about", "close"];
   function stageMount() {
     return Scratch.vm?.renderer?.canvas?.parentElement ?? globalThis.document?.body;
   }
@@ -1284,6 +1287,12 @@
       this.store = null;
       this.openedRecord = null;
       this.lastError = "";
+      this.menuActions = builtinActionIds.map((id) => ({
+        id,
+        labels: { en: menuLocales.en[id], ja: menuLocales.ja[id] },
+        enabled: true
+      }));
+      this.menuVisible = false;
     }
     getInfo() {
       return {
@@ -1291,7 +1300,8 @@
         name: Scratch.translate(definitions.extensionName),
         docsURI: extensionConfig.docsURI,
         blockIconURI: extensionConfig.blockIconURI,
-        blocks: blockDefinitions.map((block) => this.toScratchBlock(block))
+        blocks: blockDefinitions.map((block) => this.toScratchBlock(block)),
+        menus: definitions.menus
       };
     }
     showTitle() {
@@ -1299,6 +1309,40 @@
     }
     showMenu() {
       this.ensureApplicationMenu().show(this.locale());
+      this.menuVisible = true;
+    }
+    /** Backs the dynamic `menuActions` dropdown, so it always lists what the project registered. */
+    menuActionItems() {
+      if (this.menuActions.length === 0) return [{ text: "—", value: "" }];
+      const locale = this.locale();
+      return this.menuActions.map((action) => ({ text: action.labels[locale], value: action.id }));
+    }
+    addAppMenuAction(args) {
+      const id = Scratch.Cast.toString(args.ACTION).trim();
+      if (id.length === 0) return;
+      const label = Scratch.Cast.toString(args.LABEL);
+      const existing = this.menuActions.find((action) => action.id === id);
+      if (existing === void 0) {
+        this.menuActions.push({ id, labels: { en: label, ja: label }, enabled: true });
+      } else {
+        existing.labels = { en: label, ja: label };
+      }
+      this.rebuildMenu();
+    }
+    clearAppMenuActions() {
+      this.menuActions = [];
+      this.rebuildMenu();
+    }
+    setAppMenuActionEnabled(args) {
+      const id = Scratch.Cast.toString(args.ACTION);
+      const action = this.menuActions.find((entry) => entry.id === id);
+      if (action === void 0) return;
+      action.enabled = Scratch.Cast.toBoolean(args.ENABLED);
+      this.applicationMenu?.setActionState(id, { enabled: action.enabled });
+    }
+    /** Started by the menu callback, so the handler only has to accept the match. */
+    whenAppMenuActionSelected() {
+      return true;
     }
     showDslFiles() {
       return this.ensureFilesDialog().show(this.locale());
@@ -1347,6 +1391,30 @@
     recordFailure(error) {
       this.lastError = describeStoreError(this.locale(), error);
     }
+    /**
+     * Rebuilds the menu after its action list changed.
+     *
+     * The app-shell primitive fixes its actions at construction, so a changed list means a new menu.
+     * A menu that was on screen is shown again, because a project that adds an action while the menu
+     * is open should not have it silently disappear.
+     */
+    rebuildMenu() {
+      this.applicationMenu?.dispose();
+      this.applicationMenu = null;
+      if (this.menuVisible) this.showMenu();
+    }
+    selectMenuAction(id) {
+      Scratch.vm?.runtime?.startHats?.(`${extensionConfig.id}_whenAppMenuActionSelected`, { ACTION: id });
+      if (!builtinActionIds.includes(id)) return;
+      if (id === "files") void this.showDslFiles();
+      if (id === "reload") this.reloadOpenedDsl();
+      if (id === "about") this.showTitle();
+      if (id === "close") this.hideMenu();
+    }
+    hideMenu() {
+      this.applicationMenu?.hide();
+      this.menuVisible = false;
+    }
     announce(eventName, record) {
       dispatchDslSourceEvent(eventName, record);
       Scratch.vm?.runtime?.startHats?.(`${extensionConfig.id}_whenDslSourceOpened`);
@@ -1374,20 +1442,16 @@
       if (this.applicationMenu) return this.applicationMenu;
       const mount = stageMount();
       if (mount === void 0) throw new TypeError("a stage container is required to show the menu");
-      const labels = (key) => ({
-        en: menuLocales.en[key],
-        ja: menuLocales.ja[key]
-      });
       this.applicationMenu = createAppShellApplicationMenu({
         document: globalThis.document,
         mount,
         initialLocale: this.locale(),
-        actions: [
-          { id: "files", labels: labels("files"), icon: { text: "📂" }, onSelect: () => this.showDslFiles() },
-          { id: "reload", labels: labels("reload"), icon: { text: "↻" }, onSelect: () => this.reloadOpenedDsl() },
-          { id: "about", labels: labels("about"), icon: { text: "i" }, onSelect: () => this.showTitle() },
-          { id: "close", labels: labels("close"), icon: { text: "x" }, onSelect: () => this.applicationMenu?.hide() }
-        ]
+        actions: this.menuActions.map((action) => ({
+          id: action.id,
+          labels: action.labels,
+          enabled: action.enabled,
+          onSelect: () => this.selectMenuAction(action.id)
+        }))
       });
       return this.applicationMenu;
     }
@@ -1456,7 +1520,8 @@
             name,
             {
               type: Scratch.ArgumentType[argument.type],
-              defaultValue: argument.defaultValue
+              ...argument.defaultValue === void 0 ? {} : { defaultValue: argument.defaultValue },
+              ...argument.menu === void 0 ? {} : { menu: argument.menu }
             }
           ])
         )

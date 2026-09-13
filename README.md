@@ -9,7 +9,7 @@ Reusable title, application menu, and DSL source storage controls for TurboWarp 
 ## What it does
 
 - Shows a reusable title dialog with title, author, license, official website, language, and close controls.
-- Shows a stage-mounted application menu built on the shared `@kubohiroya/turbowarp-app-shell` primitive, so a host project can define its own actions instead of a fixed set.
+- Shows a stage-mounted application menu built on the shared `@kubohiroya/turbowarp-app-shell` primitive. A project defines its own actions from blocks and reacts to them with a hat, so the menu is not limited to a fixed set.
 - Shows a DSL file manager that adds, opens, renames, and deletes stored files, and sorts them by name, update time, or size.
 - Stores many DSL files in IndexedDB without tying the mechanism to TM Kamishibai.
 - Exposes a small Composition API for projects that want to wire the controls into their own runtime.
@@ -69,6 +69,20 @@ https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-title-menu@0.1.0/dist/turbowa
 2. Run `show title dialog` immediately after startup.
 3. Use `show application menu`, or `show DSL file manager` directly, when the project should expose DSL file actions.
 
+The menu starts with four built-in actions. Replace them with the project's own vocabulary when the
+built-in ones do not fit:
+
+```text
+when green flag clicked
+clear app menu actions
+add app menu action [pair] labelled [Pair with fusion PC]
+add app menu action [calibrate] labelled [Calibrate camera]
+show application menu
+
+when app menu action [pair v] selected
+broadcast [start pairing v]
+```
+
 ```text
 when green flag clicked
 show title dialog
@@ -97,6 +111,47 @@ Shows the application menu above the TurboWarp stage.
 |---|---|
 | Type | Command |
 | Opcode | `showMenu` |
+
+### `add app menu action [ACTION] labelled [LABEL]`
+
+Adds an application menu action this project owns, or relabels one it already added.
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `addAppMenuAction` |
+| `ACTION` | String, default: `start` |
+| `LABEL` | String, default: `Start` |
+
+### `clear app menu actions`
+
+Removes every application menu action, including the built-in ones, so a project can define its own set.
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `clearAppMenuActions` |
+
+### `set app menu action [ACTION] enabled [ENABLED]`
+
+Enables or disables one application menu action.
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `setAppMenuActionEnabled` |
+| `ACTION` | String, default: `undefined` |
+| `ENABLED` | Boolean, default: `true` |
+
+### `when app menu action [ACTION] selected`
+
+Runs when the operator selects the named application menu action.
+
+| Property | Value |
+|---|---|
+| Type | Hat |
+| Opcode | `whenAppMenuActionSelected` |
+| `ACTION` | String, default: `undefined` |
 
 ### `show DSL file manager`
 
@@ -178,6 +233,8 @@ Returns the most recent DSL storage failure in the interface language, or an emp
 |---|---|
 | Startup title | `show title dialog` mounts a dialog over the stage and keeps Scratch sprites untouched. |
 | Official website | The title dialog opens the configured website URL in a new browser tab. |
+| Built-in menu actions | `files`, `reload`, `about`, and `close` are pre-registered and keep their own behavior. They also start the hat, and `clear app menu actions` removes them. |
+| Changing the menu | Adding or clearing an action rebuilds the menu. A menu that was on screen is shown again rather than disappearing. |
 | Adding a DSL file | `Add file` opens a browser file picker and stores the chosen source. It does not open the file; the operator presses `Open` when the project should use it. |
 | Renaming | Names are unique. Renaming a file to a name another file already uses fails and leaves both files unchanged. |
 | Deleting | Deleting asks for a second confirming click, and deleting the open file clears the opened source. |
