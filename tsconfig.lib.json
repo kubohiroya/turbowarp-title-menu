@@ -9,11 +9,12 @@
     "rootDir": "src"
   },
   "include": [
-    "src/application-menu.ts",
     "src/composition.ts",
     "src/dom.ts",
-    "src/dsl-storage.ts",
+    "src/dsl-files-dialog.ts",
+    "src/dsl-store.ts",
     "src/events.ts",
+    "src/locales.ts",
     "src/title-dialog.ts"
   ]
 }

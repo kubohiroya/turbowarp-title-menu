@@ -9,8 +9,9 @@ Reusable title, application menu, and DSL source storage controls for TurboWarp 
 ## What it does
 
 - Shows a reusable title dialog with title, author, license, official website, language, and close controls.
-- Shows a reusable stage-mounted application menu for opening a DSL file, reloading the saved DSL source, showing about information, and closing the menu.
-- Saves and reloads a selected DSL source through `localStorage` without tying the mechanism to TM Kamishibai.
+- Shows a stage-mounted application menu built on the shared `@kubohiroya/turbowarp-app-shell` primitive. A project defines its own actions from blocks and reacts to them with a hat, so the menu is not limited to a fixed set.
+- Shows a DSL file manager that adds, opens, renames, and deletes stored files, and sorts them by name, update time, or size.
+- Stores many DSL files in IndexedDB without tying the mechanism to TM Kamishibai.
 - Exposes a small Composition API for projects that want to wire the controls into their own runtime.
 
 ## Documentation and block icon
@@ -25,7 +26,7 @@ This extension publishes its English user documentation with GitHub Pages.
 
 - TurboWarp Desktop, TurboWarp Web, or a packaged TurboWarp project that allows custom extensions.
 - Browser DOM access for the title and menu overlays.
-- Browser `localStorage` for DSL source persistence.
+- Browser IndexedDB for DSL source persistence.
 - Unsandboxed extension mode.
 
 > [!IMPORTANT]
@@ -47,7 +48,7 @@ The reviewed JavaScript build is committed to this repository, so users do not n
 Install an exact version that you have reviewed:
 
 ```bash
-pnpm add --save-exact @kubohiroya/turbowarp-title-menu@0.1.0
+pnpm add --save-exact @kubohiroya/turbowarp-title-menu@0.2.2
 ```
 
 Load the standalone bundle from:
@@ -59,14 +60,28 @@ node_modules/@kubohiroya/turbowarp-title-menu/dist/turbowarp-title-menu.js
 A version-pinned CDN URL is:
 
 ```text
-https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-title-menu@0.1.0/dist/turbowarp-title-menu.js
+https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-title-menu@0.2.2/dist/turbowarp-title-menu.js
 ```
 
 ## Quick start
 
 1. Load `dist/turbowarp-title-menu.js` as an unsandboxed custom extension.
 2. Run `show title dialog` immediately after startup.
-3. Use `show application menu` when the project should expose DSL file load and reload actions.
+3. Use `show application menu`, or `show DSL file manager` directly, when the project should expose DSL file actions.
+
+The menu starts with four built-in actions. Replace them with the project's own vocabulary when the
+built-in ones do not fit:
+
+```text
+when green flag clicked
+clear app menu actions
+add app menu action [pair] labelled [Pair with fusion PC]
+add app menu action [calibrate] labelled [Calibrate camera]
+show application menu
+
+when app menu action [pair v] selected
+broadcast [start pairing v]
+```
 
 ```text
 when green flag clicked
@@ -90,30 +105,125 @@ Shows the configured title dialog above the TurboWarp stage.
 
 ### `show application menu`
 
-Shows the generic application menu above the TurboWarp stage.
+Shows the application menu above the TurboWarp stage.
 
 | Property | Value |
 |---|---|
 | Type | Command |
 | Opcode | `showMenu` |
 
-### `has saved DSL source?`
+### `add app menu action [ACTION] labelled [LABEL]`
 
-Reports whether a DSL source has been saved in localStorage.
+Adds an application menu action this project owns, or relabels one it already added.
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `addAppMenuAction` |
+| `ACTION` | String, default: `start` |
+| `LABEL` | String, default: `Start` |
+
+### `clear app menu actions`
+
+Removes every application menu action, including the built-in ones, so a project can define its own set.
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `clearAppMenuActions` |
+
+### `set app menu action [ACTION] enabled [ENABLED]`
+
+Enables or disables one application menu action.
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `setAppMenuActionEnabled` |
+| `ACTION` | String, default: `undefined` |
+| `ENABLED` | Boolean, default: `true` |
+
+### `when app menu action [ACTION] selected`
+
+Runs when the operator selects the named application menu action.
+
+| Property | Value |
+|---|---|
+| Type | Hat |
+| Opcode | `whenAppMenuActionSelected` |
+| `ACTION` | String, default: `undefined` |
+
+### `show DSL file manager`
+
+Shows the dialog that adds, opens, renames, deletes, and sorts stored DSL files.
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `showDslFiles` |
+
+### `when a DSL source is opened`
+
+Runs after the operator opens a stored DSL file, or after the opened source is announced again.
+
+| Property | Value |
+|---|---|
+| Type | Hat |
+| Opcode | `whenDslSourceOpened` |
+
+### `reload the opened DSL source`
+
+Announces the currently opened DSL source again without showing a dialog.
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `reloadOpenedDsl` |
+
+### `opened DSL file name`
+
+Returns the name of the DSL file that is currently open, or an empty string.
+
+| Property | Value |
+|---|---|
+| Type | Reporter |
+| Opcode | `openedDslName` |
+
+### `opened DSL source`
+
+Returns the text of the DSL file that is currently open, or an empty string.
+
+| Property | Value |
+|---|---|
+| Type | Reporter |
+| Opcode | `openedDslSource` |
+
+### `has a saved DSL file?`
+
+Reports whether at least one DSL file is stored in IndexedDB.
 
 | Property | Value |
 |---|---|
 | Type | Boolean |
 | Opcode | `hasSavedDsl` |
 
-### `saved DSL file name`
+### `saved DSL file count`
 
-Returns the name of the DSL source currently saved in localStorage.
+Returns how many DSL files are stored in IndexedDB.
 
 | Property | Value |
 |---|---|
 | Type | Reporter |
-| Opcode | `savedDslName` |
+| Opcode | `savedDslCount` |
+
+### `last DSL storage error`
+
+Returns the most recent DSL storage failure in the interface language, or an empty string.
+
+| Property | Value |
+|---|---|
+| Type | Reporter |
+| Opcode | `lastDslError` |
 
 <!-- END GENERATED BLOCKS -->
 
@@ -123,23 +233,33 @@ Returns the name of the DSL source currently saved in localStorage.
 |---|---|
 | Startup title | `show title dialog` mounts a dialog over the stage and keeps Scratch sprites untouched. |
 | Official website | The title dialog opens the configured website URL in a new browser tab. |
-| DSL file open | The application menu opens a browser file picker and stores the selected DSL source in `localStorage`. |
-| DSL reload | The reload action is disabled until a DSL source has been saved. |
+| Built-in menu actions | `files`, `reload`, `about`, and `close` are pre-registered and keep their own behavior. They also start the hat, and `clear app menu actions` removes them. |
+| Changing the menu | Adding or clearing an action rebuilds the menu. A menu that was on screen is shown again rather than disappearing. |
+| An empty menu | `show application menu` does nothing while no action is registered, and clearing every action closes an open menu. The underlying primitive refuses to build a menu with no actions, so a project that clears the set before installing its own is not interrupted. |
+| Adding a DSL file | `Add file` opens a browser file picker and stores the chosen source. It does not open the file; the operator presses `Open` when the project should use it. |
+| Renaming | Names are unique. Renaming a file to a name another file already uses fails and leaves both files unchanged. |
+| Deleting | Deleting asks for a second confirming click, and deleting the open file clears the opened source. |
+| Storage limits | A file over 1 MiB, or a 65th file, is refused with a message. The store never evicts a file on its own. |
+| Storage failures | Every failure is shown in the dialog and reported by `last DSL storage error`; a script is never interrupted by a thrown storage error. |
 | Project stop | The controls remain explicit UI overlays; consumers can dispose Composition API instances when their runtime ends. |
 
 ## Composition API
 
-Importing the Composition API gives host projects direct control over DOM mounting, callbacks, locales, storage namespace, and DSL source events.
+Importing the Composition API gives host projects direct control over DOM mounting, callbacks,
+locales, the storage database, and DSL source events. The application menu is re-exported from
+`@kubohiroya/turbowarp-app-shell`, so a host owns its own action vocabulary.
 
 ```ts
 import {
   createApplicationMenu,
-  createDslStorage,
+  createDslFilesDialog,
+  createDslStore,
   createTitleDialog,
   dslReloadEventName
 } from '@kubohiroya/turbowarp-title-menu';
 
-const storage = createDslStorage({namespace: 'my-runtime'});
+const store = createDslStore({databaseName: 'my-runtime'});
+
 const title = createTitleDialog({
   mount: stageContainer,
   locales: {
@@ -154,19 +274,30 @@ const title = createTitleDialog({
   websiteUrl: 'https://example.com'
 });
 
-const menu = createApplicationMenu({
+const files = createDslFilesDialog({
   mount: stageContainer,
-  locales: {
-    en: {open: 'Open DSL', reload: 'Reload DSL', about: 'About', close: 'Close'}
+  locales: {en: myFileManagerLabels},
+  list: (sort) => store.list(sort),
+  onAdd: () => addFileThroughMyOwnPicker(),
+  onOpen: async (id) => {
+    const record = await store.get(id);
+    if (record === null) return;
+    await store.markOpened(id);
+    window.dispatchEvent(new CustomEvent(dslReloadEventName, {detail: {record}}));
   },
-  reloadEnabled: storage.load() !== null,
-  onReload() {
-    const record = storage.load();
-    if (record) window.dispatchEvent(new CustomEvent(dslReloadEventName, {detail: {record}}));
-  }
+  onRename: (id, name) => store.rename(id, name),
+  onRemove: (id) => store.remove(id)
 });
 
-title.show('en');
+const menu = createApplicationMenu({
+  document,
+  mount: stageContainer,
+  actions: [
+    {id: 'files', labels: {en: 'DSL files'}, onSelect: () => files.show('en')},
+    {id: 'about', labels: {en: 'About'}, onSelect: () => title.show('en')}
+  ]
+});
+
 menu.show('en');
 ```
 
