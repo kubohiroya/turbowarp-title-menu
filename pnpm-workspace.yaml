@@ -2,3 +2,4 @@ allowBuilds:
   esbuild: false
 minimumReleaseAgeExclude:
   - '@kubohiroya/vite-plugin-turbowarp-extension@0.1.0'
+  - '@kubohiroya/turbowarp-app-shell@0.2.1'

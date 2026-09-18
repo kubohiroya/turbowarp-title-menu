@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@kubohiroya/turbowarp-app-shell':
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 0.2.1
+        version: 0.2.1
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.5
@@ -259,8 +259,8 @@ packages:
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
 
-  '@kubohiroya/turbowarp-app-shell@0.2.0':
-    resolution: {integrity: sha512-sYt1KBEEm00biA0kjhO+1OkpSO9qb6UI++bXZvtYDQ+2sLMKM1c7vGFD8cEQsLy51cx0vSM8PUufiqb2dIwnQw==}
+  '@kubohiroya/turbowarp-app-shell@0.2.1':
+    resolution: {integrity: sha512-xq6y3Cx7b0VGR0xTOJII8nekh6XRP0kSVPeZ+7qgODaCoIDVHy3w8/mtYIBFZxJYcHsfDnWvjqqEtpqJsM6R1g==}
     engines: {node: '>=22'}
 
   '@kubohiroya/vite-plugin-turbowarp-extension@0.1.1':
@@ -1173,7 +1173,7 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
-  '@kubohiroya/turbowarp-app-shell@0.2.0': {}
+  '@kubohiroya/turbowarp-app-shell@0.2.1': {}
 
   '@kubohiroya/vite-plugin-turbowarp-extension@0.1.1(vite@7.3.6(@types/node@24.13.3))':
     dependencies:
