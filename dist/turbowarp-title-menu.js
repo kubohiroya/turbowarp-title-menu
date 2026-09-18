@@ -237,6 +237,41 @@
     const scalars = [...text];
     return scalars.length <= limit ? text : `${scalars.slice(0, limit - 1).join("")}...`;
   }
+  function applicationMenuGrid(count) {
+    const columns = count <= 4 ? 2 : count <= 12 ? 3 : 4;
+    const rows = Math.ceil(count / columns);
+    const top = 25.5556;
+    const bottom = rows <= 2 ? 80 : 90;
+    const gapX = columns === 2 ? 6.6667 : 3.3333;
+    const gapY = rows <= 2 ? 5.5556 : 2.7778;
+    const width = (80 - (columns - 1) * gapX) / columns;
+    const height = (bottom - top - (rows - 1) * gapY) / rows;
+    const scale = Math.min(1, width / 36.6667, height / 24.4444);
+    const percent = (value) => `${Number(value.toFixed(4))}%`;
+    return {
+      cell(index) {
+        const row = Math.floor(index / columns);
+        const column = index % columns;
+        if (count <= 4) {
+          return {
+            left: column === 0 ? "10%" : "53.3333%",
+            top: `${25.5556 + row * 30}%`,
+            width: "36.6667%",
+            height: "24.4444%"
+          };
+        }
+        return {
+          left: percent(10 + column * (width + gapX)),
+          top: percent(top + row * (height + gapY)),
+          width: percent(width),
+          height: percent(height)
+        };
+      },
+      cqw(size) {
+        return `${count <= 4 ? size : Number((size * scale).toFixed(4))}cqw`;
+      }
+    };
+  }
   function createAppShellApplicationMenu(options) {
     if (!isRecord$1(options))
       throw new TypeError("application menu options must be an object.");
@@ -273,6 +308,7 @@
     const buttons = /* @__PURE__ */ new Map();
     const seen = /* @__PURE__ */ new Set();
     let locale = optionalString(options.initialLocale, "initialLocale") ?? resolveAppShellLocale();
+    const grid = applicationMenuGrid(options.actions.length);
     for (const [index, definition] of options.actions.entries()) {
       if (!isRecord$1(definition))
         throw new TypeError(`actions.${index} must be an object.`);
@@ -294,17 +330,16 @@
       const button = document.createElement("button");
       const iconElement = document.createElement("span");
       const label = document.createElement("span");
-      const row = Math.floor(index / 2);
-      const column = index % 2;
+      const cell = grid.cell(index);
       button.type = "button";
       button.setAttribute("data-turbowarp-app-shell-menu-action", id);
-      button.style.cssText = `position:absolute;left:${column === 0 ? "10%" : "53.3333%"};top:${25.5556 + row * 30}%;width:36.6667%;height:24.4444%;display:flex;min-width:0;min-height:0;align-items:center;justify-content:center;flex-direction:column;gap:.4167cqw;border:.4167cqw solid #005f50;border-radius:2.9167cqw;background:#007d66;color:#fff;box-shadow:0 .625cqw 1.6667cqw rgba(0,0,0,.2);cursor:pointer;font:inherit;`;
+      button.style.cssText = `position:absolute;left:${cell.left};top:${cell.top};width:${cell.width};height:${cell.height};display:flex;min-width:0;min-height:0;align-items:center;justify-content:center;flex-direction:column;gap:.4167cqw;border:.4167cqw solid #005f50;border-radius:2.9167cqw;background:#007d66;color:#fff;box-shadow:0 .625cqw 1.6667cqw rgba(0,0,0,.2);cursor:pointer;font:inherit;`;
       button.style.cursor = "pointer";
       applyTestId(button, testId);
       applyAttributes(button, actionAttributes);
       iconElement.setAttribute("aria-hidden", "true");
-      iconElement.style.cssText = "display:inline-flex;width:10cqw;height:10cqw;align-items:center;justify-content:center;line-height:1;font-size:6cqw;";
-      label.style.cssText = "font-size:3.8cqw;line-height:1.15;text-align:center;";
+      iconElement.style.cssText = `display:inline-flex;width:${grid.cqw(10)};height:${grid.cqw(10)};align-items:center;justify-content:center;line-height:1;font-size:${grid.cqw(6)};`;
+      label.style.cssText = `font-size:${grid.cqw(3.8)};line-height:1.15;text-align:center;`;
       button.appendChild(iconElement);
       button.appendChild(label);
       const onClick = (event) => {

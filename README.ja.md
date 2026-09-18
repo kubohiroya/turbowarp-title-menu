@@ -33,7 +33,7 @@ IndexedDBはoriginごとに分かれます。TurboWarp Web、TurboWarp Desktop�
 ## インストール
 
 ```bash
-pnpm add --save-exact @kubohiroya/turbowarp-title-menu@0.2.2
+pnpm add --save-exact @kubohiroya/turbowarp-title-menu@0.2.3
 ```
 
 TurboWarpでは `dist/turbowarp-title-menu.js` をCustom Extensionとして読み込み、sandboxなしの実行を許可します。
