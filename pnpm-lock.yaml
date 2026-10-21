@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@kubohiroya/turbowarp-app-shell':
-        specifier: 0.3.0
-        version: 0.3.0
+        specifier: 0.3.1
+        version: 0.3.1
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.5
@@ -262,8 +262,8 @@ packages:
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
 
-  '@kubohiroya/turbowarp-app-shell@0.3.0':
-    resolution: {integrity: sha512-BtbOcbs00bCWioDoyXgOqtU/VASLYzX9JkMXnuMBT0jkZcKvkR2eiw0Ir0jDOD7LDxu0pu/l7bMnWf2WOE9hCA==}
+  '@kubohiroya/turbowarp-app-shell@0.3.1':
+    resolution: {integrity: sha512-fVNVA/5SOTO35L9Q4aUTYpxXK+n6FtnP3RvVUpv0huHYcawDS8SAuiyYTA/Bh2OMAuosXF0x5bvEEhlESEd3kA==}
     engines: {node: '>=22'}
 
   '@kubohiroya/turbowarp-extension-manifest@0.3.2':
@@ -1222,7 +1222,7 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
-  '@kubohiroya/turbowarp-app-shell@0.3.0': {}
+  '@kubohiroya/turbowarp-app-shell@0.3.1': {}
 
   '@kubohiroya/turbowarp-extension-manifest@0.3.2': {}
 
