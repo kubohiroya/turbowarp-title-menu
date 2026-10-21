@@ -7,7 +7,7 @@
 (function (Scratch) {
   'use strict';
 
-  //#region node_modules/.pnpm/@kubohiroya+turbowarp-app-shell@0.2.2/node_modules/@kubohiroya/turbowarp-app-shell/dist/index.js
+  //#region node_modules/.pnpm/@kubohiroya+turbowarp-app-shell@0.3.0/node_modules/@kubohiroya/turbowarp-app-shell/dist/index.js
   function isRecord$1(value) {
   	return typeof value === "object" && value !== null && !Array.isArray(value);
   }
