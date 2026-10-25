@@ -38,6 +38,7 @@
     "./extension-manifest.json": "./dist/extension-manifest.json"
   },
   "files": [
+    "assets/",
     "dist/",
     "docs/",
     "src/",
