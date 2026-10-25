@@ -1,5 +1,7 @@
 # TurboWarp Title Menu
 
+<img src="assets/block-icon.svg" alt="" width="48" height="48">
+
 [English](README.md)
 
 TurboWarp拡張やPackager実行環境で使える、汎用のタイトル表示、アプリケーションメニュー、DSLファイル保管機構です。
