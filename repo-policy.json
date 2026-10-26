@@ -9,7 +9,7 @@
     "ja": "README.ja.md"
   },
   "node": {
-    "minimum": "22"
+    "minimum": "24"
   },
   "packageManager": "pnpm",
   "requiredFiles": ["README.md", "README.ja.md", "LICENSE"],
