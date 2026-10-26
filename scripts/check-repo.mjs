@@ -52,8 +52,8 @@ function checkPackageMetadata() {
   if (!packageMetadata.packageManager?.startsWith('pnpm@')) {
     errors.push('package.json packageManager must pin pnpm exactly');
   }
-  if (packageMetadata.engines?.node !== '>=22') {
-    errors.push('package.json engines.node must be >=22');
+  if (packageMetadata.engines?.node !== '>=24') {
+    errors.push('package.json engines.node must be >=24');
   }
   if (packageMetadata.types !== './dist/types/composition.d.ts') {
     errors.push('package.json types must point to the generated Composition API declarations');
