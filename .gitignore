@@ -10,3 +10,5 @@ coverage/
 .claude/
 .playwright-mcp/
 .serena/
+
+_site/

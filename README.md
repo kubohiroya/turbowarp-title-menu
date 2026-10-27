@@ -8,6 +8,14 @@ Reusable title, application menu, and DSL source storage controls for TurboWarp 
 
 **User guide:** [English](https://kubohiroya.github.io/turbowarp-title-menu/)
 
+## Minimal demo
+
+[Open in TurboWarp Editor](https://turbowarp.org/editor?project_url=https%3A%2F%2Fkubohiroya.github.io%2Fturbowarp-title-menu%2Fsamples%2Fchoose-menu-action.sb3) · [Download SB3](https://kubohiroya.github.io/turbowarp-title-menu/samples/choose-menu-action.sb3)
+
+Click the green flag, then choose **Hello**; `Selected action` becomes `Hello`. Choose **Close** to close the menu.
+
+In the official TurboWarp Editor, enable **Run extension without sandbox** and choose **Allow**. The SB3 embeds this repository’s distributed JavaScript. App Shell is bundled; no additional host is required.
+
 ## What it does
 
 - Shows a reusable title dialog with title, author, license, official website, language, and close controls.
