@@ -1,0 +1,298 @@
+{
+  "targets": [
+    {
+      "isStage": true,
+      "name": "Stage",
+      "variables": {
+        "sample-state": [
+          "Sample state",
+          ""
+        ],
+        "sample-result": [
+          "Selected action",
+          ""
+        ]
+      },
+      "lists": {},
+      "broadcasts": {},
+      "blocks": {},
+      "comments": {},
+      "currentCostume": 0,
+      "costumes": [
+        {
+          "assetId": "",
+          "name": "Instructions",
+          "bitmapResolution": 1,
+          "md5ext": "backdrop.svg",
+          "dataFormat": "svg",
+          "rotationCenterX": 240,
+          "rotationCenterY": 180
+        }
+      ],
+      "sounds": [],
+      "volume": 100,
+      "layerOrder": 0,
+      "tempo": 60,
+      "videoTransparency": 50,
+      "videoState": "off",
+      "textToSpeechLanguage": null
+    },
+    {
+      "isStage": false,
+      "name": "Demo",
+      "variables": {},
+      "lists": {},
+      "broadcasts": {},
+      "blocks": {
+        "sample-block-1": {
+          "opcode": "event_whenflagclicked",
+          "next": "sample-block-2",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 35,
+          "y": 35
+        },
+        "sample-block-2": {
+          "opcode": "data_setvariableto",
+          "next": "sample-block-3",
+          "parent": "sample-block-1",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                10,
+                "Running"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Sample state",
+              "sample-state"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "sample-block-3": {
+          "opcode": "data_setvariableto",
+          "next": "sample-block-4",
+          "parent": "sample-block-2",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                10,
+                "Choose Hello"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Selected action",
+              "sample-result"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "sample-block-4": {
+          "opcode": "kubohiroyaturbowarptitlemenu_clearAppMenuActions",
+          "next": "sample-block-5",
+          "parent": "sample-block-3",
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "sample-block-5": {
+          "opcode": "kubohiroyaturbowarptitlemenu_addAppMenuAction",
+          "next": "close-action",
+          "parent": "sample-block-4",
+          "inputs": {
+            "ACTION": [
+              1,
+              [
+                10,
+                "hello"
+              ]
+            ],
+            "LABEL": [
+              1,
+              [
+                10,
+                "Hello"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "sample-block-6": {
+          "opcode": "kubohiroyaturbowarptitlemenu_showMenu",
+          "next": "sample-block-7",
+          "parent": "close-action",
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "sample-block-7": {
+          "opcode": "data_setvariableto",
+          "next": null,
+          "parent": "sample-block-6",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                10,
+                "Ready"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Sample state",
+              "sample-state"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "sample-block-8": {
+          "opcode": "kubohiroyaturbowarptitlemenu_whenAppMenuActionSelected",
+          "next": "sample-block-9",
+          "parent": null,
+          "inputs": {},
+          "fields": {
+            "ACTION": [
+              "hello",
+              null
+            ]
+          },
+          "shadow": false,
+          "topLevel": true,
+          "x": 500,
+          "y": 35
+        },
+        "sample-block-9": {
+          "opcode": "data_setvariableto",
+          "next": null,
+          "parent": "sample-block-8",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                10,
+                "Hello"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Selected action",
+              "sample-result"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "close-action": {
+          "opcode": "kubohiroyaturbowarptitlemenu_addAppMenuAction",
+          "next": "sample-block-6",
+          "parent": "sample-block-5",
+          "inputs": {
+            "ACTION": [
+              1,
+              [
+                10,
+                "close"
+              ]
+            ],
+            "LABEL": [
+              1,
+              [
+                10,
+                "Close"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        }
+      },
+      "comments": {},
+      "currentCostume": 0,
+      "costumes": [
+        {
+          "assetId": "",
+          "name": "Demo",
+          "bitmapResolution": 1,
+          "md5ext": "sprite.svg",
+          "dataFormat": "svg",
+          "rotationCenterX": 16,
+          "rotationCenterY": 16
+        }
+      ],
+      "sounds": [],
+      "volume": 100,
+      "layerOrder": 1,
+      "visible": true,
+      "x": 0,
+      "y": -40,
+      "size": 100,
+      "direction": 90,
+      "draggable": false,
+      "rotationStyle": "all around"
+    }
+  ],
+  "monitors": [
+    {
+      "id": "sample-state",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "Sample state"
+      },
+      "spriteName": null,
+      "value": "",
+      "width": 0,
+      "height": 0,
+      "x": 10,
+      "y": 75,
+      "visible": true,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    },
+    {
+      "id": "sample-result",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "Selected action"
+      },
+      "spriteName": null,
+      "value": "",
+      "width": 0,
+      "height": 0,
+      "x": 10,
+      "y": 103,
+      "visible": true,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    }
+  ],
+  "extensions": [],
+  "meta": {
+    "semver": "3.0.0",
+    "vm": "0.2.0",
+    "agent": "TurboWarp Plus minimal samples"
+  }
+}

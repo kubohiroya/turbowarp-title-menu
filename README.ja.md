@@ -6,6 +6,14 @@
 
 TurboWarp拡張やPackager実行環境で使える、汎用のタイトル表示、アプリケーションメニュー、DSLファイル保管機構です。
 
+## 最小デモ
+
+[Open in TurboWarp Editor](https://turbowarp.org/editor?project_url=https%3A%2F%2Fkubohiroya.github.io%2Fturbowarp-title-menu%2Fsamples%2Fchoose-menu-action.sb3) · [Download SB3](https://kubohiroya.github.io/turbowarp-title-menu/samples/choose-menu-action.sb3)
+
+緑の旗を押し、メニューの **Hello** を選択すると `Selected action` が `Hello` になります。**Close** を選ぶとメニューを閉じます。
+
+公式TurboWarp Editorでカスタム拡張の確認画面の **Run extension without sandbox** をチェックし、**Allow** を選択してください。SB3はこのリポジトリの配布JSを内包します。 app-shellは配布JSに含まれ、追加のホストは不要です。
+
 ## 利用者ガイド
 
 英語ドキュメント: [https://kubohiroya.github.io/turbowarp-title-menu/](https://kubohiroya.github.io/turbowarp-title-menu/)

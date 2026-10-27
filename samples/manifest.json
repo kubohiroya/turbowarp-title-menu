@@ -1,0 +1,21 @@
+{
+  "baseURL": "https://kubohiroya.github.io/turbowarp-title-menu/",
+  "extension": {
+    "id": "kubohiroyaturbowarptitlemenu",
+    "bundle": "dist/turbowarp-title-menu.js",
+    "unsandboxed": true
+  },
+  "samples": [
+    {
+      "name": "choose-menu-action",
+      "title": "title-menu minimal demo",
+      "instructions": "Choose Hello in the menu",
+      "checks": [
+        {
+          "variable": "sample-result",
+          "equals": "Choose Hello"
+        }
+      ]
+    }
+  ]
+}
