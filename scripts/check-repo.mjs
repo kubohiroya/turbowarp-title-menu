@@ -42,7 +42,17 @@ function checkPolicy() {
 }
 
 function checkPackageMetadata() {
-  const requiredStrings = ['description', 'author', 'license', 'homepage', 'packageManager'];
+  if (
+    typeof packageMetadata.author !== 'object' ||
+    packageMetadata.author === null ||
+    Array.isArray(packageMetadata.author) ||
+    packageMetadata.author.name !== 'Hiroya Kubo' ||
+    packageMetadata.author.email !== 'hiroya@cuc.ac.jp' ||
+    packageMetadata.author.url !== 'https://github.com/kubohiroya'
+  ) {
+    errors.push('package.json author must use the approved name, email, and URL');
+  }
+  const requiredStrings = ['description', 'license', 'homepage', 'packageManager'];
   for (const key of requiredStrings) {
     if (typeof packageMetadata[key] !== 'string' || packageMetadata[key].trim().length === 0) {
       errors.push(`package.json ${key} must be a non-empty string`);
