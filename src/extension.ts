@@ -5,9 +5,13 @@ import {extensionConfig} from './config';
 import {createDslFilesDialog, type DslFilesDialog} from './dsl-files-dialog';
 import {createDslStore, readDslFile, type DslFileRecord, type DslStore} from './dsl-store';
 import {dispatchDslSourceEvent, dslOpenEventName, dslReloadEventName} from './events';
+import {createExtensionCache, type ExtensionCache} from './extension-cache';
+import {createExtensionCacheDialog, type ExtensionCacheDialog} from './extension-cache-dialog';
 import {
+  describeCacheError,
   describeStoreError,
   dslFilesLocales,
+  extensionCacheLocales,
   menuLocales,
   titleLocales,
   type SupportedLocale
@@ -38,7 +42,7 @@ const blockDefinitions = definitions.blocks as readonly BlockDefinition[];
 const dslFileAccept = '.txt,.yaml,.yml,.json,.k4,.kamishibai';
 
 /** Reserved action IDs the extension handles itself. A project may still remove or relabel them. */
-const builtinActionIds = ['files', 'reload', 'about', 'close'] as const;
+const builtinActionIds = ['files', 'cache', 'reload', 'about', 'close'] as const;
 
 type BuiltinActionId = (typeof builtinActionIds)[number];
 
@@ -56,7 +60,19 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
   private titleDialog: TitleDialog | null = null;
   private applicationMenu: ApplicationMenu | null = null;
   private filesDialog: DslFilesDialog | null = null;
+  private cacheDialog: ExtensionCacheDialog | null = null;
   private store: DslStore | null = null;
+  private cache: ExtensionCache | null = null;
+  /**
+   * Readable names for project URIs, filled by `setCachedProjectTitle`.
+   *
+   * The cache cannot supply these: it files bytes under whatever URI the project claimed, and a
+   * URI is an opaque identifier so that renaming a project does not rename its address. Nothing
+   * else in this extension knows the titles either, so the project itself declares them — the
+   * same self-declaration the cache dialog's notice warns about, and the reason the screen never
+   * fetches a URI to look one up.
+   */
+  private projectTitles = new Map<string, string>();
   private openedRecord: DslFileRecord | null = null;
   private lastError = '';
   private menuActions: MenuActionEntry[] = builtinActionIds.map((id) => ({
@@ -143,6 +159,27 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
     return this.ensureFilesDialog().show(this.locale());
   }
 
+  public showExtensionCache(): Promise<unknown> {
+    return this.ensureCacheDialog().show(this.locale());
+  }
+
+  /**
+   * Records a title to show beside one project URI.
+   *
+   * An empty URI is ignored because there is nothing to label, and an empty title forgets the
+   * label rather than showing a blank row: that is the only way a project can take one back.
+   */
+  public setCachedProjectTitle(args: {URI: unknown; TITLE: unknown}): void {
+    const uri = Scratch.Cast.toString(args.URI).trim();
+    if (uri.length === 0) return;
+    const title = Scratch.Cast.toString(args.TITLE).trim();
+    if (title.length === 0) {
+      this.projectTitles.delete(uri);
+      return;
+    }
+    this.projectTitles.set(uri, title);
+  }
+
   /** The hat is started by the open path, so its own handler only has to accept the match. */
   public whenDslSourceOpened(): boolean {
     return true;
@@ -193,6 +230,20 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
     return this.store;
   }
 
+  /**
+   * Opens the extension cache on first use.
+   *
+   * No database name is passed: the Loader wrote those bytes and the Loader owns the name of the
+   * place they are in. Naming it here would put the same string in two packages, which is the
+   * cross-layer mismatch this family keeps rediscovering.
+   */
+  private requireCache(): ExtensionCache {
+    this.cache ??= createExtensionCache({
+      titleFor: (bucket) => this.projectTitles.get(bucket)
+    });
+    return this.cache;
+  }
+
   private recordFailure(error: unknown): void {
     this.lastError = describeStoreError(this.locale(), error);
   }
@@ -220,6 +271,7 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
     Scratch.vm?.runtime?.startHats?.(`${extensionConfig.id}_whenAppMenuActionSelected`, {ACTION: id});
     if (!builtinActionIds.includes(id as BuiltinActionId)) return;
     if (id === 'files') void this.showDslFiles();
+    if (id === 'cache') void this.showExtensionCache();
     if (id === 'reload') this.reloadOpenedDsl();
     if (id === 'about') this.showTitle();
     if (id === 'close') this.hideMenu();
@@ -290,6 +342,34 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
       onError: (error) => this.recordFailure(error)
     });
     return this.filesDialog;
+  }
+
+  /**
+   * Builds the cache dialog.
+   *
+   * Cache failures go to `lastDslError` through the same reporter, because an operator has one
+   * place to look for "what went wrong with storage" and the two stores fail for the same
+   * reasons — blocked storage, a full quota — even though they are separate databases.
+   */
+  private ensureCacheDialog(): ExtensionCacheDialog {
+    if (this.cacheDialog) return this.cacheDialog;
+    const mount = stageMount();
+    this.cacheDialog = createExtensionCacheDialog({
+      document: globalThis.document,
+      ...(mount ? {mount} : {}),
+      locales: extensionCacheLocales,
+      initialLocale: this.locale(),
+      listProjects: () => this.requireCache().listProjects(),
+      listDigests: (bucket) => this.requireCache().listDigests(bucket),
+      totals: () => this.requireCache().totals(),
+      onReleaseProject: (bucket) => this.requireCache().releaseProject(bucket),
+      onReleaseDigest: (bucket, key) => this.requireCache().releaseDigests(bucket, [key]),
+      describeError: (error) => describeCacheError(this.locale(), error),
+      onError: (error) => {
+        this.lastError = describeCacheError(this.locale(), error);
+      }
+    });
+    return this.cacheDialog;
   }
 
   private async addDslFile(): Promise<void> {

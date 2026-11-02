@@ -67,7 +67,26 @@
       ]
     },
     {
+      "opcode": "setCachedProjectTitle",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "TITLE",
+          "type": "STRING"
+        },
+        {
+          "id": "URI",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
       "opcode": "showDslFiles",
+      "blockType": "COMMAND",
+      "arguments": []
+    },
+    {
+      "opcode": "showExtensionCache",
       "blockType": "COMMAND",
       "arguments": []
     },

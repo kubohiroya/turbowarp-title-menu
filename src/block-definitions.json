@@ -116,6 +116,28 @@
       "blockType": "REPORTER",
       "text": "last DSL storage error",
       "description": "Returns the most recent DSL storage failure in the interface language, or an empty string."
+    },
+    {
+      "opcode": "showExtensionCache",
+      "blockType": "COMMAND",
+      "text": "show extension cache manager",
+      "description": "Shows the dialog that lists the cached extension bytes per project and releases them."
+    },
+    {
+      "opcode": "setCachedProjectTitle",
+      "blockType": "COMMAND",
+      "text": "label cached project [URI] as [TITLE]",
+      "description": "Records a readable title to show beside a project URI in the extension cache manager. A project URI is deliberately opaque, so without a title the rows cannot be told apart; the title is self-declared and is never checked against the URI.",
+      "arguments": {
+        "URI": {
+          "type": "STRING",
+          "defaultValue": "https://example.com/turbowarp-plus-projects/ab/cd/project"
+        },
+        "TITLE": {
+          "type": "STRING",
+          "defaultValue": "My project"
+        }
+      }
     }
   ]
 }

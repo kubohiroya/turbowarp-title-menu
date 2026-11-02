@@ -14,6 +14,8 @@
     "src/dsl-files-dialog.ts",
     "src/dsl-store.ts",
     "src/events.ts",
+    "src/extension-cache.ts",
+    "src/extension-cache-dialog.ts",
     "src/locales.ts",
     "src/title-dialog.ts"
   ]

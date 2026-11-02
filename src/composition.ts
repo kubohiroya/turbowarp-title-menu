@@ -22,5 +22,21 @@ export type {
 } from './dsl-store.js';
 export {dslOpenEventName, dslReloadEventName} from './events.js';
 export type {DslSourceEventDetail} from './events.js';
+export {createExtensionCache, ExtensionCacheError, SHARED_BUCKET} from './extension-cache.js';
+export type {
+  CachedDigestSummary,
+  CachedProjectSummary,
+  CacheReleaseResult,
+  ExtensionCache,
+  ExtensionCacheErrorCode,
+  ExtensionCacheOptions,
+  ExtensionCacheTotals
+} from './extension-cache.js';
+export {createExtensionCacheDialog} from './extension-cache-dialog.js';
+export type {
+  ExtensionCacheDialog,
+  ExtensionCacheDialogLocaleText,
+  ExtensionCacheDialogOptions
+} from './extension-cache-dialog.js';
 export {createTitleDialog} from './title-dialog.js';
 export type {TitleDialog, TitleDialogOptions, TitleDialogLocaleText} from './title-dialog.js';
