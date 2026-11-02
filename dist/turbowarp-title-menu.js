@@ -990,7 +990,7 @@ function dispatchDslSourceEvent(type, record) {
 	target.dispatchEvent(event);
 }
 //#endregion
-//#region node_modules/@kubohiroya/turbowarp-extension-loader/dist/cache-gzip.js
+//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.5.0/node_modules/@kubohiroya/turbowarp-extension-loader/dist/cache-gzip.js
 /** Gzip utilities for persistent extension caches. The caller remains responsible for SHA-256 verification. */
 async function gzipBytes(bytes) {
 	if (!(bytes instanceof Uint8Array)) throw new TypeError("Expected Uint8Array");
@@ -1026,7 +1026,7 @@ async function gunzipBytes(compressed, maxOutputBytes) {
 	return result;
 }
 //#endregion
-//#region node_modules/@kubohiroya/turbowarp-extension-loader/dist/limits.js
+//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.5.0/node_modules/@kubohiroya/turbowarp-extension-loader/dist/limits.js
 var MiB = 1048576;
 /**
 * The one source of the default size limits. A file the project codec accepts as an archive entry
@@ -1043,7 +1043,7 @@ Object.freeze({
 });
 Math.ceil(DEFAULT_ENTRY_BYTES / 3) * 4 + 1024;
 //#endregion
-//#region node_modules/@kubohiroya/turbowarp-extension-loader/dist/indexeddb-cache.js
+//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.5.0/node_modules/@kubohiroya/turbowarp-extension-loader/dist/indexeddb-cache.js
 /**
 * The bucket for bytes that belong to no one project.
 *
