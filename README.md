@@ -21,6 +21,7 @@ In the official TurboWarp Editor, enable **Run extension without sandbox** and c
 - Shows a reusable title dialog with title, author, license, official website, language, and close controls.
 - Shows a stage-mounted application menu built on the shared `@kubohiroya/turbowarp-app-shell` primitive. A project defines its own actions from blocks and reacts to them with a hat, so the menu is not limited to a fixed set.
 - Shows a DSL file manager that adds, opens, renames, and deletes stored files, and sorts them by name, update time, or size.
+- Shows an extension cache manager that lists the extension bytes the loader cached, per project and for the shared catalog, and releases them.
 - Stores many DSL files in IndexedDB without tying the mechanism to TM Kamishibai.
 - Exposes a small Composition API for projects that want to wire the controls into their own runtime.
 
@@ -235,6 +236,26 @@ Returns the most recent DSL storage failure in the interface language, or an emp
 | Type | Reporter |
 | Opcode | `lastDslError` |
 
+### `show extension cache manager`
+
+Shows the dialog that lists the cached extension bytes per project and releases them.
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `showExtensionCache` |
+
+### `label cached project [URI] as [TITLE]`
+
+Records a readable title to show beside a project URI in the extension cache manager. A project URI is deliberately opaque, so without a title the rows cannot be told apart; the title is self-declared and is never checked against the URI.
+
+| Property | Value |
+|---|---|
+| Type | Command |
+| Opcode | `setCachedProjectTitle` |
+| `URI` | String, default: `https://example.com/turbowarp-plus-projects/ab/cd/project` |
+| `TITLE` | String, default: `My project` |
+
 <!-- END GENERATED BLOCKS -->
 
 ## Important behavior
@@ -243,7 +264,7 @@ Returns the most recent DSL storage failure in the interface language, or an emp
 |---|---|
 | Startup title | `show title dialog` mounts a dialog over the stage and keeps Scratch sprites untouched. |
 | Official website | The title dialog opens the configured website URL in a new browser tab. |
-| Built-in menu actions | `files`, `reload`, `about`, and `close` are pre-registered and keep their own behavior. They also start the hat, and `clear app menu actions` removes them. |
+| Built-in menu actions | `files`, `cache`, `reload`, `about`, and `close` are pre-registered and keep their own behavior. They also start the hat, and `clear app menu actions` removes them. |
 | Changing the menu | Adding or clearing an action rebuilds the menu. A menu that was on screen is shown again rather than disappearing. |
 | An empty menu | `show application menu` does nothing while no action is registered, and clearing every action closes an open menu. The underlying primitive refuses to build a menu with no actions, so a project that clears the set before installing its own is not interrupted. |
 | Adding a DSL file | `Add file` opens a browser file picker and stores the chosen source. It does not open the file; the operator presses `Open` when the project should use it. |
@@ -251,6 +272,12 @@ Returns the most recent DSL storage failure in the interface language, or an emp
 | Deleting | Deleting asks for a second confirming click, and deleting the open file clears the opened source. |
 | Storage limits | A file over 1 MiB, or a 65th file, is refused with a message. The store never evicts a file on its own. |
 | Storage failures | Every failure is shown in the dialog and reported by `last DSL storage error`; a script is never interrupted by a thrown storage error. |
+| Releasing a cached project | Cached entries are addressed by their contents, so a project claims entries rather than owning them. Releasing a project drops the digests that project names, which can take bytes another project would have reused. Nothing is lost for good: whatever is still needed is downloaded again the next time a project is opened. |
+| Project URIs in the cache | A project URI is what that project called itself and is not verified, so a project can file its bytes under another project's URI. Only this list is misled by that; the loader re-checks every digest when it uses it, so the wrong bytes can never be handed over. The dialog states both facts on screen. |
+| Unreachable project URIs | A project URI serves nothing until its author publishes, so an unpublished project answers 404. The dialog never fetches a URI and never treats reachability as a reason to release anything, because that would clear the cache of every project still being written. |
+| Project titles | The cache has no titles, and a project URI is deliberately opaque so that renaming a project does not rename its address. `label cached project [URI] as [TITLE]` records a readable name to show beside the URI; a row with no recorded title says so. |
+| The shared cache bucket | Bytes the catalog pinned belong to no one project, so they are listed under their own row rather than charged to whichever project fetched them first. That row can be released like any other. |
+| Cache failures | A listing that fails shows the failure instead of an empty list, because "nothing is cached" and "the cache could not be read" are different claims. Failures are also reported by `last DSL storage error`. |
 | Project stop | The controls remain explicit UI overlays; consumers can dispose Composition API instances when their runtime ends. |
 
 ## Composition API
@@ -309,6 +336,34 @@ const menu = createApplicationMenu({
 });
 
 menu.show('en');
+```
+
+The extension cache manager is composed the same way. The cache itself is never opened by name
+here: every operation goes through `@kubohiroya/turbowarp-extension-loader/indexeddb-cache`, so the
+loader stays the only package that knows where those bytes live and what shape they are in.
+
+```ts
+import {
+  createExtensionCache,
+  createExtensionCacheDialog
+} from '@kubohiroya/turbowarp-title-menu';
+
+// The host knows its projects' titles; the cache only knows their URIs.
+const titles = new Map<string, string>();
+
+const cache = createExtensionCache({titleFor: (uri) => titles.get(uri)});
+
+const cacheManager = createExtensionCacheDialog({
+  mount: stageContainer,
+  locales: {en: myCacheLabels},
+  listProjects: () => cache.listProjects(),
+  listDigests: (bucket) => cache.listDigests(bucket),
+  totals: () => cache.totals(),
+  onReleaseProject: (bucket) => cache.releaseProject(bucket),
+  onReleaseDigest: (bucket, key) => cache.releaseDigests(bucket, [key])
+});
+
+await cacheManager.show('en');
 ```
 
 ## Compatibility

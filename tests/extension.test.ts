@@ -1,3 +1,6 @@
+import {createHash} from 'node:crypto';
+
+import {createIndexedDBContentCache} from '@kubohiroya/turbowarp-extension-loader/indexeddb-cache';
 import {IDBFactory} from 'fake-indexeddb';
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 
@@ -50,7 +53,7 @@ installGlobals();
 
 const {TurboWarpTitleMenuExtension} = await import('../src/extension');
 const {createDslStore} = await import('../src/dsl-store');
-const {dslFilesLocales} = await import('../src/locales');
+const {dslFilesLocales, extensionCacheLocales} = await import('../src/locales');
 const {dslOpenEventName, dslReloadEventName} = await import('../src/events');
 
 const databaseName = 'kubohiroyaturbowarptitlemenu';
@@ -85,7 +88,7 @@ describe('getInfo', () => {
   it('publishes the extension identity and every block', () => {
     const info = createExtension().getInfo();
     expect(info['id']).toBe(databaseName);
-    expect(info['blocks']).toHaveLength(14);
+    expect(info['blocks']).toHaveLength(16);
   });
 
   it('declares the DSL hat as a non edge-activated hat', () => {
@@ -102,10 +105,10 @@ describe('dialogs', () => {
     expect(stage.children.length).toBeGreaterThan(0);
   });
 
-  it('mounts the application menu with its four actions', () => {
+  it('mounts the application menu with its built-in actions', () => {
     createExtension().showMenu();
     const rendered = descendants(stage).map((node) => node.textContent);
-    for (const label of ['DSL files', 'Reload DSL', 'About', 'Close']) {
+    for (const label of ['DSL files', 'Extension cache', 'Reload DSL', 'About', 'Close']) {
       expect(rendered).toContain(label);
     }
   });
@@ -294,10 +297,11 @@ describe('storage reporters', () => {
 });
 
 describe('application menu actions', () => {
-  it('starts with the four built-in actions', () => {
+  it('starts with the built-in actions', () => {
     const extension = createExtension();
     expect(extension.menuActionItems().map((item) => item.value)).toEqual([
       'files',
+      'cache',
       'reload',
       'about',
       'close'
@@ -326,7 +330,7 @@ describe('application menu actions', () => {
   it('ignores an empty action id', () => {
     const extension = createExtension();
     extension.addAppMenuAction({ACTION: '   ', LABEL: 'Nothing'});
-    expect(extension.menuActionItems()).toHaveLength(4);
+    expect(extension.menuActionItems()).toHaveLength(5);
   });
 
   it('lets a project replace the whole vocabulary', () => {
@@ -463,5 +467,113 @@ describe('menu argument shape', () => {
     // A reporter-accepting menu becomes an input holding a shadow block, and `startHats` reads
     // fields, so `when app menu action [x] selected` would never fire for a specific action.
     expect(menus['menuActions']?.acceptReporters).toBe(false);
+  });
+});
+
+describe('the extension cache dialog', () => {
+  const projectUri = 'https://example.com/turbowarp-plus-projects/aa/bb/one';
+  const cacheLabels = extensionCacheLocales.en;
+
+  /**
+   * Seeds through the Loader's own cache, against the same global IndexedDB the extension opens.
+   *
+   * The extension deliberately does not know the database name, so there is no way to seed it
+   * except the way the Loader writes it — which is the only way worth testing anyway.
+   */
+  async function seedCache(appURI: string | undefined, source: string): Promise<string> {
+    const cache = createIndexedDBContentCache(appURI === undefined ? {} : {appURI});
+    const key = createHash('sha256').update(source).digest('hex');
+    await cache.put(key, new TextEncoder().encode(source));
+    await cache.close();
+    return key;
+  }
+
+  function rendered(): string[] {
+    return descendants(stage).map((node) => node.textContent);
+  }
+
+  it('lists a cached project under the label the project recorded', async () => {
+    await seedCache(projectUri, 'extension bytes');
+    const extension = createExtension();
+    extension.setCachedProjectTitle({URI: projectUri, TITLE: 'Kamishibai demo'});
+
+    await extension.showExtensionCache();
+
+    expect(rendered()).toContain('Kamishibai demo');
+    expect(rendered()).toContain(projectUri);
+  });
+
+  it('says the title is missing rather than leaving the row nameless', async () => {
+    await seedCache(projectUri, 'extension bytes');
+
+    await createExtension().showExtensionCache();
+
+    expect(rendered()).toContain(cacheLabels.untitled);
+    expect(rendered()).toContain(projectUri);
+  });
+
+  it('forgets a label when the project clears it', async () => {
+    await seedCache(projectUri, 'extension bytes');
+    const extension = createExtension();
+    extension.setCachedProjectTitle({URI: projectUri, TITLE: 'Kamishibai demo'});
+    extension.setCachedProjectTitle({URI: projectUri, TITLE: '  '});
+
+    await extension.showExtensionCache();
+
+    expect(rendered()).not.toContain('Kamishibai demo');
+    expect(rendered()).toContain(cacheLabels.untitled);
+  });
+
+  it('names the bytes that belong to no one project', async () => {
+    await seedCache(undefined, 'catalog bytes');
+
+    await createExtension().showExtensionCache();
+
+    expect(rendered()).toContain(cacheLabels.shared);
+  });
+
+  /** The notice is what makes a release honest, so it is on screen before any row is. */
+  it('states what releasing does and does not promise', async () => {
+    await createExtension().showExtensionCache();
+    expect(rendered()).toContain(cacheLabels.notice);
+  });
+
+  it('releases a project through the dialog and reports what it freed', async () => {
+    await seedCache(projectUri, 'extension bytes');
+    await createExtension().showExtensionCache();
+
+    buttonsWithText(stage, cacheLabels.release)[0]?.click();
+    buttonsWithText(stage, cacheLabels.confirmRelease)[0]?.click();
+
+    await vi.waitFor(() => expect(rendered()).toContain(cacheLabels.empty));
+    const cache = createIndexedDBContentCache();
+    await expect(cache.getSize()).resolves.toMatchObject({entries: 0});
+    await cache.close();
+  });
+
+  it('opens from the application menu', async () => {
+    await seedCache(projectUri, 'extension bytes');
+    const extension = createExtension();
+    extension.showMenu();
+
+    const button = descendants(stage).find(
+      (node) =>
+        node.tagName === 'button' &&
+        descendants(node).some((child) => child.textContent === 'Extension cache')
+    );
+    button?.click();
+
+    await vi.waitFor(() => expect(rendered()).toContain(projectUri));
+  });
+
+  it('reports unavailable storage rather than an empty cache', async () => {
+    (globalThis as Record<string, unknown>)['indexedDB'] = undefined;
+    const extension = createExtension();
+
+    await extension.showExtensionCache();
+
+    expect(rendered()).toContain('Browser storage is unavailable, so the extension cache cannot be read.');
+    expect(rendered()).not.toContain(cacheLabels.empty);
+    expect(extension.lastDslError()).toMatch(/extension cache cannot be read/);
   });
 });

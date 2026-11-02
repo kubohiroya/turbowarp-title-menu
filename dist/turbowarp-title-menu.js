@@ -684,27 +684,27 @@ var defaultSortDirections = Object.freeze({
 	updatedAt: "desc",
 	byteLength: "desc"
 });
-function requireLocales(value) {
+function requireLocales$1(value) {
 	if (!isRecord(value) || Object.keys(value).length === 0) throw new TypeError("locales must contain at least one locale");
 	return value;
 }
-function textFor(locales, locale) {
+function textFor$1(locales, locale) {
 	const text = locales[locale] ?? locales["en"] ?? Object.values(locales)[0];
 	if (text === void 0) throw new TypeError("locales must contain at least one locale");
 	return text;
 }
-function defaultFormatSize(byteLength) {
+function defaultFormatSize$1(byteLength) {
 	if (byteLength < 1024) return `${byteLength} B`;
 	if (byteLength < 1048576) return `${(byteLength / 1024).toFixed(1)} KB`;
 	return `${(byteLength / 1048576).toFixed(1)} MB`;
 }
-function defaultFormatDate(isoDate) {
+function defaultFormatDate$1(isoDate) {
 	const parsed = new Date(isoDate);
 	if (Number.isNaN(parsed.getTime())) return isoDate;
 	const pad = (value) => String(value).padStart(2, "0");
 	return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
 }
-function defaultDescribeError(error) {
+function defaultDescribeError$1(error) {
 	if (error instanceof Error && error.message.length > 0) return error.message;
 	return String(error);
 }
@@ -712,10 +712,10 @@ function createDslFilesDialog(options) {
 	if (!isRecord(options)) throw new TypeError("DSL files dialog options must be an object");
 	const document = requireDocument(options.document ?? globalThis.document);
 	const mount = requireElement(options.mount ?? document.body, "mount");
-	const locales = requireLocales(options.locales);
-	const describeError = options.describeError ?? defaultDescribeError;
-	const formatSize = options.formatSize ?? defaultFormatSize;
-	const formatDate = options.formatDate ?? defaultFormatDate;
+	const locales = requireLocales$1(options.locales);
+	const describeError = options.describeError ?? defaultDescribeError$1;
+	const formatSize = options.formatSize ?? defaultFormatSize$1;
+	const formatDate = options.formatDate ?? defaultFormatDate$1;
 	let locale = options.initialLocale ?? "en";
 	let sort = options.initialSort ?? defaultDslSort;
 	let summaries = [];
@@ -903,7 +903,7 @@ function createDslFilesDialog(options) {
 	}
 	function render() {
 		if (disposed) return;
-		const text = textFor(locales, locale);
+		const text = textFor$1(locales, locale);
 		heading.textContent = text.title;
 		closeButton.textContent = text.close;
 		closeButton.setAttribute("aria-label", text.close);
@@ -988,6 +988,758 @@ function dispatchDslSourceEvent(type, record) {
 	const event = typeof CustomEvent === "function" ? new CustomEvent(type, { detail: { record } }) : new Event(type);
 	if (!("detail" in event)) Object.defineProperty(event, "detail", { value: { record } });
 	target.dispatchEvent(event);
+}
+//#endregion
+//#region node_modules/@kubohiroya/turbowarp-extension-loader/dist/cache-gzip.js
+/** Gzip utilities for persistent extension caches. The caller remains responsible for SHA-256 verification. */
+async function gzipBytes(bytes) {
+	if (!(bytes instanceof Uint8Array)) throw new TypeError("Expected Uint8Array");
+	if (typeof CompressionStream !== "function") throw new Error("CompressionStream gzip unavailable");
+	return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
+}
+async function gunzipBytes(compressed, maxOutputBytes) {
+	if (!(compressed instanceof Uint8Array) || !Number.isSafeInteger(maxOutputBytes) || maxOutputBytes < 1) throw new TypeError("Invalid compressed bytes or output limit");
+	if (typeof DecompressionStream !== "function") throw new Error("DecompressionStream gzip unavailable");
+	const reader = new Blob([compressed]).stream().pipeThrough(new DecompressionStream("gzip")).getReader();
+	const chunks = [];
+	let size = 0;
+	try {
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			size += value.byteLength;
+			if (size > maxOutputBytes) throw new Error("Decompressed cache exceeds byte limit");
+			chunks.push(value);
+		}
+	} catch (error) {
+		await reader.cancel(error).catch(() => {});
+		throw error;
+	} finally {
+		reader.releaseLock();
+	}
+	const result = new Uint8Array(size);
+	let offset = 0;
+	for (const chunk of chunks) {
+		result.set(chunk, offset);
+		offset += chunk.byteLength;
+	}
+	return result;
+}
+//#endregion
+//#region node_modules/@kubohiroya/turbowarp-extension-loader/dist/limits.js
+var MiB = 1048576;
+/**
+* The one source of the default size limits. A file the project codec accepts as an archive entry
+* must also be one the loader reads, so the per-extension and total defaults are the codec's entry
+* and expansion limits; real extensions such as a bundled story runtime reach several MiB.
+*/
+var DEFAULT_ENTRY_BYTES = 16 * MiB;
+var DEFAULT_TOTAL_BYTES = 64 * MiB;
+Object.freeze({
+	maxExtensions: 64,
+	maxBytes: DEFAULT_ENTRY_BYTES,
+	maxTotalBytes: DEFAULT_TOTAL_BYTES,
+	timeoutMs: 3e4
+});
+Math.ceil(DEFAULT_ENTRY_BYTES / 3) * 4 + 1024;
+//#endregion
+//#region node_modules/@kubohiroya/turbowarp-extension-loader/dist/indexeddb-cache.js
+/**
+* The bucket for bytes that belong to no one project.
+*
+* A catalog extension is pinned to a version and shared by many projects, so filing it under
+* whichever project happened to fetch it first would make that project look responsible for
+* storage every other one reuses, and releasing that project would evict bytes the rest still
+* want. It is not a URI, so no project can name it.
+*/
+var SHARED_BUCKET = "shared";
+/** Persistent, content-addressed cache. The Loader independently verifies SHA-256 on every hit.
+* Storage is untrusted: this adapter is not an authorization or integrity boundary.
+*/
+function createIndexedDBContentCache({ indexedDB = globalThis.indexedDB, databaseName = "turbowarp-plus-extension-cache", appURI, sharedDigests, maxBytes = 33554432, maxDecompressedBytes = DEFAULT_ENTRY_BYTES, now = Date.now } = {}) {
+	if (!indexedDB || typeof indexedDB.open !== "function") throw new Error("IndexedDB unavailable");
+	if (typeof databaseName !== "string" || !databaseName || !Number.isSafeInteger(maxBytes) || maxBytes < 1 || !Number.isSafeInteger(maxDecompressedBytes) || maxDecompressedBytes < 1 || typeof now !== "function") throw new TypeError("Invalid IndexedDB cache options");
+	let dbPromise;
+	function open() {
+		if (!dbPromise) dbPromise = new Promise((resolve, reject) => {
+			const request = indexedDB.open(databaseName, 2);
+			request.onupgradeneeded = () => {
+				const db = request.result;
+				if (!db.objectStoreNames.contains("content")) db.createObjectStore("content", { keyPath: "key" });
+				if (!db.objectStoreNames.contains("usage")) {
+					const usage = db.createObjectStore("usage", { keyPath: ["bucket", "key"] });
+					usage.createIndex("key", "key");
+					usage.createIndex("bucket", "bucket");
+					request.transaction.objectStore("content").clear();
+				}
+			};
+			request.onsuccess = () => {
+				const db = request.result;
+				db.onversionchange = () => db.close();
+				resolve(db);
+			};
+			request.onerror = () => reject(request.error || /* @__PURE__ */ new Error("IndexedDB open failed"));
+			request.onblocked = () => reject(/* @__PURE__ */ new Error("IndexedDB upgrade blocked"));
+		}).catch((error) => {
+			dbPromise = void 0;
+			throw error;
+		});
+		return dbPromise;
+	}
+	function transaction(db, mode, work, stores = "content") {
+		return new Promise((resolve, reject) => {
+			const tx = db.transaction(stores, mode);
+			let value;
+			tx.oncomplete = () => resolve(value);
+			tx.onerror = () => reject(tx.error || /* @__PURE__ */ new Error("IndexedDB transaction failed"));
+			tx.onabort = () => reject(tx.error || /* @__PURE__ */ new Error("IndexedDB transaction aborted"));
+			try {
+				work(tx.objectStore(typeof stores === "string" ? stores : stores[0]), (result) => {
+					value = result;
+				}, tx);
+			} catch (error) {
+				try {
+					tx.abort();
+				} catch {}
+				reject(error);
+			}
+		});
+	}
+	const keyValid = (key) => typeof key === "string" && /^[a-f0-9]{64}$/.test(key);
+	const validBytes = (value) => value instanceof Uint8Array;
+	const validRecord = (entry) => !!entry && entry.format === "gzip-v1" && entry.bytes instanceof ArrayBuffer && Number.isSafeInteger(entry.originalBytes) && entry.originalBytes >= 0 && entry.originalBytes <= maxDecompressedBytes && entry.bytes.byteLength <= maxBytes;
+	const dropClaims = (usage, key) => {
+		const claims = usage.index("key").getAllKeys(key);
+		claims.onsuccess = () => {
+			for (const claim of claims.result) usage.delete(claim);
+		};
+	};
+	function sweep(store, usage, protectedKey = null) {
+		const request = store.getAll();
+		request.onsuccess = () => {
+			let total = 0;
+			const kept = [];
+			for (const record of request.result) {
+				if (!validRecord(record)) {
+					store.delete(record.key);
+					dropClaims(usage, record.key);
+					continue;
+				}
+				total += record.bytes.byteLength;
+				kept.push(record);
+			}
+			kept.sort((a, b) => (a.lastAccess || 0) - (b.lastAccess || 0));
+			for (const record of kept) {
+				if (total <= maxBytes) break;
+				if (record.key === protectedKey) continue;
+				store.delete(record.key);
+				dropClaims(usage, record.key);
+				total -= record.bytes.byteLength;
+			}
+		};
+	}
+	async function release(bucket, keys) {
+		if (typeof bucket !== "string" || !bucket) throw new TypeError("A bucket name is required");
+		if (keys !== null && (!Array.isArray(keys) || keys.some((key) => !keyValid(key)))) throw new TypeError("Cache keys must be SHA-256 digests");
+		const wanted = keys === null ? null : new Set(keys);
+		return transaction(await open(), "readwrite", (store, set, tx) => {
+			const usage = tx.objectStore("usage");
+			const result = {
+				released: 0,
+				freed: 0
+			};
+			set(result);
+			const mine = usage.index("bucket").getAll(bucket);
+			mine.onsuccess = () => {
+				for (const claim of mine.result) {
+					if (wanted !== null && !wanted.has(claim.key)) continue;
+					usage.delete([bucket, claim.key]);
+					result.released++;
+					const others = usage.index("key").getAll(claim.key);
+					others.onsuccess = () => {
+						if (others.result.some((other) => other.bucket !== bucket)) return;
+						const record = store.get(claim.key);
+						record.onsuccess = () => {
+							const entry = record.result;
+							if (!entry) return;
+							result.freed += entry.bytes?.byteLength || 0;
+							store.delete(claim.key);
+						};
+					};
+				}
+			};
+		}, ["content", "usage"]);
+	}
+	return Object.freeze({
+		async get(key, { signal } = {}) {
+			if (!keyValid(key)) throw new TypeError("Invalid SHA-256 cache key");
+			if (signal?.aborted) throw signal.reason;
+			const record = await transaction(await open(), "readwrite", (store, set) => {
+				const request = store.get(key);
+				request.onsuccess = () => {
+					const entry = request.result;
+					if (!entry) {
+						set(void 0);
+						return;
+					}
+					if (!validRecord(entry)) {
+						store.delete(key);
+						set(void 0);
+						return;
+					}
+					entry.lastAccess = now();
+					store.put(entry);
+					set({
+						bytes: entry.bytes.slice(0),
+						originalBytes: entry.originalBytes
+					});
+				};
+			});
+			if (signal?.aborted) throw signal.reason;
+			if (!record) return void 0;
+			const bytes = await gunzipBytes(new Uint8Array(record.bytes), maxDecompressedBytes);
+			if (bytes.byteLength !== record.originalBytes) throw new Error("Cached decompressed length mismatch");
+			if (signal?.aborted) throw signal.reason;
+			return bytes;
+		},
+		async put(key, bytes, { signal } = {}) {
+			if (!keyValid(key) || !validBytes(bytes)) throw new TypeError("Cache content requires a SHA-256 key and bytes");
+			if (signal?.aborted) throw signal.reason;
+			if (bytes.byteLength > maxDecompressedBytes) throw new RangeError("Cache input exceeds decompressed size limit");
+			const originalBytes = bytes.byteLength;
+			const compressed = await gzipBytes(bytes);
+			if (signal?.aborted) throw signal.reason;
+			const db = await open();
+			const bucket = appURI === void 0 || sharedDigests?.has(key) ? SHARED_BUCKET : appURI;
+			return transaction(db, "readwrite", (store, _set, tx) => {
+				const usage = tx.objectStore("usage");
+				const time = now();
+				if (compressed.byteLength <= maxBytes) {
+					store.put({
+						key,
+						format: "gzip-v1",
+						bytes: compressed.buffer,
+						originalBytes,
+						lastAccess: time
+					});
+					usage.put({
+						bucket,
+						key,
+						lastAccess: time
+					});
+				} else {
+					store.delete(key);
+					usage.delete([bucket, key]);
+				}
+				sweep(store, usage, compressed.byteLength <= maxBytes ? key : null);
+			}, ["content", "usage"]);
+		},
+		async clear() {
+			return transaction(await open(), "readwrite", (store, _set, tx) => {
+				store.clear();
+				tx.objectStore("usage").clear();
+			}, ["content", "usage"]);
+		},
+		async getSize() {
+			return transaction(await open(), "readonly", (store, set) => {
+				const request = store.getAll();
+				request.onsuccess = () => set(request.result.reduce((size, record) => ({
+					entries: size.entries + 1,
+					bytes: size.bytes + (record.bytes?.byteLength || 0)
+				}), {
+					entries: 0,
+					bytes: 0
+				}));
+			});
+		},
+		async listBuckets() {
+			return transaction(await open(), "readonly", (store, set, tx) => {
+				const claims = tx.objectStore("usage").getAll();
+				const records = store.getAll();
+				claims.onsuccess = () => {
+					records.onsuccess = () => {
+						const sizes = new Map(records.result.map((record) => [record.key, record.bytes?.byteLength || 0]));
+						const totals = /* @__PURE__ */ new Map();
+						for (const claim of claims.result) {
+							const total = totals.get(claim.bucket) || {
+								entries: 0,
+								bytes: 0
+							};
+							total.entries++;
+							total.bytes += sizes.get(claim.key) || 0;
+							totals.set(claim.bucket, total);
+						}
+						set([...totals].map(([bucket, total]) => Object.freeze({
+							bucket,
+							...total
+						})));
+					};
+				};
+			}, ["content", "usage"]);
+		},
+		async listBucket(bucket) {
+			if (typeof bucket !== "string" || !bucket) throw new TypeError("A bucket name is required");
+			return transaction(await open(), "readonly", (store, set, tx) => {
+				const claims = tx.objectStore("usage").index("bucket").getAll(bucket);
+				const records = store.getAll();
+				claims.onsuccess = () => {
+					records.onsuccess = () => {
+						const byKey = new Map(records.result.map((record) => [record.key, record]));
+						set(claims.result.flatMap((claim) => {
+							const record = byKey.get(claim.key);
+							if (!record) return [];
+							return [Object.freeze({
+								bucket,
+								key: claim.key,
+								bytes: record.bytes?.byteLength || 0,
+								originalBytes: record.originalBytes,
+								lastAccess: claim.lastAccess
+							})];
+						}));
+					};
+				};
+			}, ["content", "usage"]);
+		},
+		deleteBucket(bucket) {
+			return release(bucket, null);
+		},
+		deleteFromBucket(bucket, keys) {
+			return release(bucket, keys);
+		},
+		async close() {
+			if (dbPromise) {
+				(await dbPromise).close();
+				dbPromise = void 0;
+			}
+		}
+	});
+}
+//#endregion
+//#region src/extension-cache.ts
+var ExtensionCacheError = class extends Error {
+	constructor(code, message, cause) {
+		super(message, cause === void 0 ? void 0 : { cause });
+		this.name = "ExtensionCacheError";
+		this.code = code;
+	}
+};
+/**
+* Compares two buckets for display.
+*
+* The shared bucket leads because it is the one row that is not a project: it holds what the
+* catalog pinned for everyone, and an operator hunting for space should see it before deciding
+* that some individual project is to blame. The rest follow by stored size, because size is the
+* only reason anyone opens this screen; the bucket name breaks ties so the order is stable
+* between listings rather than reflecting insertion order.
+*/
+function compareBuckets(left, right) {
+	if (left.shared !== right.shared) return left.shared ? -1 : 1;
+	if (left.bytes !== right.bytes) return right.bytes - left.bytes;
+	return left.bucket < right.bucket ? -1 : left.bucket > right.bucket ? 1 : 0;
+}
+function createExtensionCache(options = {}) {
+	let cache = null;
+	/**
+	* Opens the cache on first use.
+	*
+	* A browser with storage blocked fails here rather than when the dialog is built, so the menu
+	* entry stays clickable and the failure is reported in the dialog's own status line.
+	*/
+	function requireCache() {
+		if (cache !== null) return cache;
+		try {
+			cache = createIndexedDBContentCache({
+				...options.indexedDB === void 0 ? {} : { indexedDB: options.indexedDB },
+				...options.databaseName === void 0 ? {} : { databaseName: options.databaseName }
+			});
+		} catch (error) {
+			throw new ExtensionCacheError("unavailable", "the extension cache is unavailable", error);
+		}
+		return cache;
+	}
+	return Object.freeze({
+		async listProjects() {
+			return (await requireCache().listBuckets()).map((bucket) => {
+				const title = options.titleFor?.(bucket.bucket);
+				return {
+					bucket: bucket.bucket,
+					shared: bucket.bucket === SHARED_BUCKET,
+					...title === void 0 || title.length === 0 ? {} : { title },
+					entries: bucket.entries,
+					bytes: bucket.bytes
+				};
+			}).sort(compareBuckets);
+		},
+		async listDigests(bucket) {
+			return (await requireCache().listBucket(bucket)).map((entry) => ({
+				key: entry.key,
+				bytes: entry.bytes,
+				originalBytes: entry.originalBytes,
+				lastAccess: entry.lastAccess
+			})).sort((left, right) => right.lastAccess - left.lastAccess);
+		},
+		releaseProject(bucket) {
+			return requireCache().deleteBucket(bucket);
+		},
+		releaseDigests(bucket, keys) {
+			return requireCache().deleteFromBucket(bucket, keys);
+		},
+		totals() {
+			return requireCache().getSize();
+		},
+		async close() {
+			const open = cache;
+			cache = null;
+			if (open !== null) await open.close();
+		}
+	});
+}
+//#endregion
+//#region src/extension-cache-dialog.ts
+/** How much of a digest is shown. Enough to tell two rows apart; the full value is the title. */
+var digestPreviewLength = 12;
+function requireLocales(value) {
+	if (!isRecord(value) || Object.keys(value).length === 0) throw new TypeError("locales must contain at least one locale");
+	return value;
+}
+function textFor(locales, locale) {
+	const text = locales[locale] ?? locales["en"] ?? Object.values(locales)[0];
+	if (text === void 0) throw new TypeError("locales must contain at least one locale");
+	return text;
+}
+/** Fills `{name}` placeholders, so a locale decides where a count or a size sits in a sentence. */
+function fill(template, values) {
+	return template.replace(/\{(\w+)\}/g, (match, name) => values[name] ?? match);
+}
+function defaultFormatSize(byteLength) {
+	if (byteLength < 1024) return `${byteLength} B`;
+	if (byteLength < 1048576) return `${(byteLength / 1024).toFixed(1)} KB`;
+	return `${(byteLength / 1048576).toFixed(1)} MB`;
+}
+function defaultFormatDate(epochMilliseconds) {
+	const parsed = new Date(epochMilliseconds);
+	if (Number.isNaN(parsed.getTime())) return String(epochMilliseconds);
+	const pad = (value) => String(value).padStart(2, "0");
+	return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+}
+function defaultDescribeError(error) {
+	if (error instanceof Error && error.message.length > 0) return error.message;
+	return String(error);
+}
+function createExtensionCacheDialog(options) {
+	if (!isRecord(options)) throw new TypeError("extension cache dialog options must be an object");
+	const document = requireDocument(options.document ?? globalThis.document);
+	const mount = requireElement(options.mount ?? document.body, "mount");
+	const locales = requireLocales(options.locales);
+	const describeError = options.describeError ?? defaultDescribeError;
+	const formatSize = options.formatSize ?? defaultFormatSize;
+	const formatDate = options.formatDate ?? defaultFormatDate;
+	let locale = options.initialLocale ?? "en";
+	let projects = [];
+	let totals = {
+		entries: 0,
+		bytes: 0
+	};
+	let expandedBucket = null;
+	let digests = [];
+	let confirmingBucket = null;
+	let confirmingDigest = null;
+	let status = "";
+	let result = "";
+	/** Whether the list on screen came from a listing that finished. See `render`. */
+	let listed = false;
+	let disposed = false;
+	const root = document.createElement("section");
+	const panel = document.createElement("div");
+	const heading = document.createElement("h1");
+	const closeButton = document.createElement("button");
+	const toolbar = document.createElement("div");
+	const refreshButton = document.createElement("button");
+	const totalElement = document.createElement("p");
+	const noticeElement = document.createElement("p");
+	const listElement = document.createElement("div");
+	const resultElement = document.createElement("p");
+	const statusElement = document.createElement("p");
+	root.setAttribute("data-turbowarp-title-menu-extension-cache", "true");
+	root.style.cssText = "position:absolute;inset:0;z-index:2147483646;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;background:rgba(0,0,0,.6);font-family:sans-serif;";
+	root.style.display = "none";
+	panel.style.cssText = "width:min(760px,96%);max-height:90%;display:flex;flex-direction:column;gap:10px;padding:18px;box-sizing:border-box;background:#ffffff;color:#1b1f27;border-radius:10px;box-shadow:0 10px 36px rgba(0,0,0,.45);overflow:hidden;";
+	heading.style.cssText = "margin:0;font-size:20px;line-height:1.3;";
+	toolbar.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;";
+	totalElement.style.cssText = "margin:0;font-size:13px;color:#1b1f27;";
+	noticeElement.style.cssText = "margin:0;padding:8px 10px;font-size:12px;line-height:1.5;color:#45506a;background:#f2f4f8;border:1px solid #ccd2de;border-radius:8px;";
+	listElement.style.cssText = "flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:6px;";
+	resultElement.style.cssText = "margin:0;min-height:18px;font-size:13px;color:#1f6feb;";
+	statusElement.style.cssText = "margin:0;min-height:18px;font-size:13px;color:#8a1c1c;";
+	const headerRow = document.createElement("div");
+	headerRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;";
+	headerRow.appendChild(heading);
+	headerRow.appendChild(closeButton);
+	panel.appendChild(headerRow);
+	toolbar.appendChild(refreshButton);
+	toolbar.appendChild(totalElement);
+	panel.appendChild(toolbar);
+	panel.appendChild(noticeElement);
+	panel.appendChild(listElement);
+	panel.appendChild(resultElement);
+	panel.appendChild(statusElement);
+	root.appendChild(panel);
+	const previousMountPosition = mount.style.position;
+	if (previousMountPosition === "" || previousMountPosition === "static") mount.style.position = "relative";
+	mount.appendChild(root);
+	function styleButton(button, tone) {
+		const palette = {
+			primary: "background:#1f6feb;color:#ffffff;border:1px solid #1f6feb;",
+			plain: "background:#f2f4f8;color:#1b1f27;border:1px solid #ccd2de;",
+			danger: "background:#b42318;color:#ffffff;border:1px solid #b42318;",
+			active: "background:#d7e6ff;color:#0b3a82;border:1px solid #1f6feb;"
+		}[tone];
+		button.style.cssText = `${palette}padding:5px 10px;border-radius:6px;font-size:13px;cursor:pointer;`;
+	}
+	function createButton(label, tone, onClick) {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.textContent = label;
+		styleButton(button, tone);
+		button.addEventListener("click", onClick);
+		return button;
+	}
+	function run(operation) {
+		try {
+			Promise.resolve(operation()).catch(handleFailure);
+		} catch (error) {
+			handleFailure(error);
+		}
+	}
+	function handleFailure(error) {
+		status = describeError(error);
+		options.onError?.(error);
+		render();
+	}
+	/** Every release goes through here, so the list, the total, and the status stay in step. */
+	function release(operation) {
+		run(async () => {
+			status = "";
+			try {
+				const released = await operation();
+				result = fill(textFor(locales, locale).releaseResult, {
+					released: String(released.released),
+					freed: formatSize(released.freed)
+				});
+			} catch (error) {
+				handleFailure(error);
+				return;
+			}
+			await reload();
+		});
+	}
+	/**
+	* Reloads the whole screen.
+	*
+	* The expanded bucket is re-listed rather than filtered out of a stale list, because releasing
+	* a digest from one bucket can remove bytes a second bucket claimed, which changes totals the
+	* dialog never asked about. Asking again is cheap; guessing would be wrong.
+	*/
+	async function reload() {
+		if (disposed) return;
+		listed = false;
+		projects = await options.listProjects();
+		totals = await options.totals();
+		if (expandedBucket !== null && !projects.some((entry) => entry.bucket === expandedBucket)) expandedBucket = null;
+		digests = expandedBucket === null ? [] : await options.listDigests(expandedBucket);
+		listed = true;
+		render();
+	}
+	/**
+	* Reloads without letting the failure escape.
+	*
+	* A listing that failed must not leave the panel showing an empty list: "nothing is cached" and
+	* "the cache could not be read" are different claims, and only one of them is true. So the
+	* status line carries the failure while the panel stays open, instead of the promise rejecting
+	* into a caller that has no way to say so on screen.
+	*/
+	async function reloadSafely() {
+		try {
+			await reload();
+		} catch (error) {
+			handleFailure(error);
+		}
+	}
+	function toggleExpanded(bucket) {
+		expandedBucket = expandedBucket === bucket ? null : bucket;
+		confirmingBucket = null;
+		confirmingDigest = null;
+		run(() => reload());
+	}
+	function renderDigestRow(digest, bucket, text) {
+		const row = document.createElement("div");
+		row.setAttribute("data-cache-digest", digest.key);
+		row.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 8px;margin-left:18px;border:1px solid #eef1f6;border-radius:6px;";
+		const key = document.createElement("span");
+		key.textContent = `${digest.key.slice(0, digestPreviewLength)}…`;
+		key.setAttribute("title", digest.key);
+		key.style.cssText = "flex:1;min-width:0;font-family:monospace;font-size:12px;color:#1b1f27;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+		const used = document.createElement("span");
+		used.textContent = fill(text.lastUsed, { date: formatDate(digest.lastAccess) });
+		used.style.cssText = "font-size:12px;color:#5a6172;white-space:nowrap;";
+		const size = document.createElement("span");
+		size.textContent = formatSize(digest.bytes);
+		size.setAttribute("title", fill(text.originalSize, { bytes: formatSize(digest.originalBytes) }));
+		size.style.cssText = "font-size:12px;color:#5a6172;white-space:nowrap;min-width:64px;text-align:right;";
+		row.appendChild(key);
+		row.appendChild(used);
+		row.appendChild(size);
+		if (confirmingDigest === digest.key) {
+			row.appendChild(createButton(text.confirmRelease, "danger", () => {
+				confirmingDigest = null;
+				release(() => options.onReleaseDigest(bucket, digest.key));
+			}));
+			row.appendChild(createButton(text.cancel, "plain", () => {
+				confirmingDigest = null;
+				render();
+			}));
+			return row;
+		}
+		row.appendChild(createButton(text.release, "plain", () => {
+			confirmingDigest = digest.key;
+			confirmingBucket = null;
+			render();
+		}));
+		return row;
+	}
+	function renderProjectRow(project, text) {
+		const row = document.createElement("div");
+		row.setAttribute("data-cache-bucket", project.bucket);
+		row.style.cssText = "display:flex;align-items:center;gap:8px;padding:8px;border:1px solid #e2e6ee;border-radius:8px;";
+		const names = document.createElement("div");
+		names.style.cssText = "flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;";
+		const title = document.createElement("span");
+		title.textContent = project.shared ? text.shared : project.title ?? text.untitled;
+		title.style.cssText = "font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+		names.appendChild(title);
+		if (!project.shared) {
+			const uri = document.createElement("span");
+			uri.textContent = project.bucket;
+			uri.setAttribute("title", project.bucket);
+			uri.style.cssText = "font-size:11px;font-family:monospace;color:#5a6172;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+			names.appendChild(uri);
+		}
+		row.appendChild(names);
+		const count = document.createElement("span");
+		count.textContent = fill(text.entryCount, { entries: String(project.entries) });
+		count.style.cssText = "font-size:12px;color:#5a6172;white-space:nowrap;";
+		const size = document.createElement("span");
+		size.textContent = formatSize(project.bytes);
+		size.style.cssText = "font-size:12px;color:#5a6172;white-space:nowrap;min-width:64px;text-align:right;";
+		row.appendChild(count);
+		row.appendChild(size);
+		const expanded = expandedBucket === project.bucket;
+		const expandButton = createButton(expanded ? text.collapse : text.expand, expanded ? "active" : "primary", () => toggleExpanded(project.bucket));
+		expandButton.setAttribute("data-cache-expand", project.bucket);
+		expandButton.setAttribute("aria-expanded", expanded ? "true" : "false");
+		row.appendChild(expandButton);
+		if (confirmingBucket === project.bucket) {
+			row.appendChild(createButton(text.confirmRelease, "danger", () => {
+				confirmingBucket = null;
+				release(() => options.onReleaseProject(project.bucket));
+			}));
+			row.appendChild(createButton(text.cancel, "plain", () => {
+				confirmingBucket = null;
+				render();
+			}));
+			return row;
+		}
+		row.appendChild(createButton(text.release, "plain", () => {
+			confirmingBucket = project.bucket;
+			confirmingDigest = null;
+			render();
+		}));
+		return row;
+	}
+	function render() {
+		if (disposed) return;
+		const text = textFor(locales, locale);
+		heading.textContent = text.title;
+		closeButton.textContent = text.close;
+		closeButton.setAttribute("aria-label", text.close);
+		refreshButton.textContent = text.refresh;
+		noticeElement.textContent = text.notice;
+		totalElement.textContent = fill(text.total, {
+			entries: String(totals.entries),
+			bytes: formatSize(totals.bytes)
+		});
+		resultElement.textContent = result;
+		statusElement.textContent = status;
+		listElement.replaceChildren();
+		if (projects.length === 0) {
+			if (!listed) return;
+			const empty = document.createElement("p");
+			empty.textContent = text.empty;
+			empty.style.cssText = "margin:8px 0;font-size:14px;color:#5a6172;";
+			listElement.appendChild(empty);
+			return;
+		}
+		for (const project of projects) {
+			listElement.appendChild(renderProjectRow(project, text));
+			if (expandedBucket !== project.bucket) continue;
+			for (const digest of digests) listElement.appendChild(renderDigestRow(digest, project.bucket, text));
+		}
+	}
+	styleButton(closeButton, "plain");
+	styleButton(refreshButton, "primary");
+	closeButton.type = "button";
+	refreshButton.type = "button";
+	closeButton.addEventListener("click", () => hide());
+	refreshButton.addEventListener("click", () => {
+		result = "";
+		status = "";
+		run(() => reload());
+	});
+	function hide() {
+		if (disposed) return;
+		confirmingBucket = null;
+		confirmingDigest = null;
+		root.style.display = "none";
+	}
+	function ensureActive() {
+		if (disposed) throw new TypeError("extension cache dialog is disposed");
+	}
+	render();
+	return Object.freeze({
+		element: root,
+		get locale() {
+			return locale;
+		},
+		get expanded() {
+			return expandedBucket;
+		},
+		async show(nextLocale) {
+			ensureActive();
+			if (nextLocale !== void 0) locale = nextLocale;
+			status = "";
+			result = "";
+			root.style.display = "flex";
+			await reloadSafely();
+			return locale;
+		},
+		hide,
+		async refresh() {
+			ensureActive();
+			await reload();
+		},
+		setLocale(nextLocale) {
+			ensureActive();
+			locale = nextLocale;
+			render();
+			return locale;
+		},
+		dispose() {
+			if (disposed) return;
+			disposed = true;
+			root.remove();
+			if (previousMountPosition === "" || previousMountPosition === "static") mount.style.position = previousMountPosition;
+		}
+	});
 }
 //#endregion
 //#region src/title-dialog.ts
@@ -1218,6 +1970,28 @@ var block_definitions_default = {
 			"blockType": "REPORTER",
 			"text": "last DSL storage error",
 			"description": "Returns the most recent DSL storage failure in the interface language, or an empty string."
+		},
+		{
+			"opcode": "showExtensionCache",
+			"blockType": "COMMAND",
+			"text": "show extension cache manager",
+			"description": "Shows the dialog that lists the cached extension bytes per project and releases them."
+		},
+		{
+			"opcode": "setCachedProjectTitle",
+			"blockType": "COMMAND",
+			"text": "label cached project [URI] as [TITLE]",
+			"description": "Records a readable title to show beside a project URI in the extension cache manager. A project URI is deliberately opaque, so without a title the rows cannot be told apart; the title is self-declared and is never checked against the URI.",
+			"arguments": {
+				"URI": {
+					"type": "STRING",
+					"defaultValue": "https://example.com/turbowarp-plus-projects/ab/cd/project"
+				},
+				"TITLE": {
+					"type": "STRING",
+					"defaultValue": "My project"
+				}
+			}
 		}
 	]
 };
@@ -1242,12 +2016,14 @@ var titleLocales = Object.freeze({
 var menuLocales = Object.freeze({
 	en: {
 		files: "DSL files",
+		cache: "Extension cache",
 		reload: "Reload DSL",
 		about: "About",
 		close: "Close"
 	},
 	ja: {
 		files: "DSLファイル",
+		cache: "機能拡張キャッシュ",
 		reload: "DSLを再読み込み",
 		about: "情報",
 		close: "閉じる"
@@ -1285,6 +2061,81 @@ var dslFilesLocales = Object.freeze({
 		empty: "保存されたDSLファイルはありません。「ファイルを追加」から保存してください。"
 	}
 });
+/**
+* Wording for the extension cache screen.
+*
+* The notice is the load-bearing part, and it says three things on purpose. Releasing is phrased
+* as letting go of what a project *names*, never as deleting what it owns, because the cache is
+* addressed by content and one copy can be claimed by several projects. It states that nothing is
+* lost for good, so that an operator freeing space is not frightened into leaving it alone. And it
+* states that a project URI is self-declared, the same admission the DSL dialog and the security
+* dialog make about an author's name — the Loader re-checks every digest on use, so a project
+* that files its bytes under somebody else's URI corrupts this list and nothing else.
+*/
+var extensionCacheLocales = Object.freeze({
+	en: {
+		title: "Extension cache",
+		notice: "Cached entries are addressed by their contents, not owned by a project. Releasing a project drops the digests that project names, which can take bytes another project would have reused. Nothing is lost for good: whatever is still needed is downloaded again the next time a project is opened. Each URI below is what that project called itself and is not verified; the loader re-checks every digest when it uses it, so a wrong URI only misleads this list.",
+		total: "Cached in all: {entries} entries, {bytes}",
+		shared: "Shared by every project (pinned by the catalog)",
+		untitled: "(no title recorded)",
+		entryCount: "{entries} entries",
+		expand: "Entries",
+		collapse: "Fold",
+		release: "Release",
+		confirmRelease: "Release?",
+		cancel: "Cancel",
+		close: "Close",
+		refresh: "Reload",
+		empty: "Nothing is cached. Opening a project that uses extensions fills this.",
+		releaseResult: "Released {released} entries and freed {freed}.",
+		lastUsed: "used {date}",
+		originalSize: "{bytes} of JavaScript"
+	},
+	ja: {
+		title: "機能拡張キャッシュ",
+		notice: "キャッシュは内容で参照されており、作品が所有しているわけではありません。作品を手放すと、その作品が名指すdigestを落とします。別の作品が使い回したはずのバイト列まで落ちることがあります。失われたままにはなりません。必要なものは、次にその作品を開いたときに取り直します。下に出るURIは、その作品自身の申告で、検証していません。Loaderは使うたびにdigestを照合するので、URIが誤っていても狂うのはこの一覧の見え方だけです。",
+		total: "キャッシュ全体: {entries}件、{bytes}",
+		shared: "すべての作品で共有（カタログが指定したもの）",
+		untitled: "（タイトル未登録）",
+		entryCount: "{entries}件",
+		expand: "中身",
+		collapse: "たたむ",
+		release: "手放す",
+		confirmRelease: "手放す?",
+		cancel: "やめる",
+		close: "閉じる",
+		refresh: "読み直す",
+		empty: "キャッシュは空です。機能拡張を使う作品を開くと入ります。",
+		releaseResult: "{released}件を手放し、{freed}を空けました。",
+		lastUsed: "最終利用 {date}",
+		originalSize: "JavaScript {bytes}"
+	}
+});
+var cacheErrorMessages = Object.freeze({
+	en: {
+		unavailable: "Browser storage is unavailable, so the extension cache cannot be read.",
+		failed: "The extension cache operation failed."
+	},
+	ja: {
+		unavailable: "ブラウザの保存領域が使えないため、機能拡張キャッシュを読めません。",
+		failed: "機能拡張キャッシュの操作に失敗しました。"
+	}
+});
+/**
+* Turns a cache failure into operator-facing text.
+*
+* Only the codes this package assigns itself are translated. A failure raised inside IndexedDB
+* keeps its own message, because inventing a friendlier sentence for an unclassified error would
+* hide the one detail that makes it reportable.
+*/
+function describeCacheError(locale, error) {
+	const code = error?.code;
+	const messages = cacheErrorMessages[locale] ?? cacheErrorMessages.en;
+	if (code !== void 0 && code in messages) return messages[code];
+	if (error instanceof Error && error.message.length > 0) return error.message;
+	return String(error);
+}
 var storeErrorMessages = Object.freeze({
 	en: {
 		unavailable: "Browser storage is unavailable, so DSL files cannot be saved.",
@@ -1324,6 +2175,7 @@ var dslFileAccept = ".txt,.yaml,.yml,.json,.k4,.kamishibai";
 /** Reserved action IDs the extension handles itself. A project may still remove or relabel them. */
 var builtinActionIds = [
 	"files",
+	"cache",
 	"reload",
 	"about",
 	"close"
@@ -1336,7 +2188,10 @@ var TurboWarpTitleMenuExtension = class {
 		this.titleDialog = null;
 		this.applicationMenu = null;
 		this.filesDialog = null;
+		this.cacheDialog = null;
 		this.store = null;
+		this.cache = null;
+		this.projectTitles = /* @__PURE__ */ new Map();
 		this.openedRecord = null;
 		this.lastError = "";
 		this.menuActions = builtinActionIds.map((id) => ({
@@ -1430,6 +2285,25 @@ var TurboWarpTitleMenuExtension = class {
 	showDslFiles() {
 		return this.ensureFilesDialog().show(this.locale());
 	}
+	showExtensionCache() {
+		return this.ensureCacheDialog().show(this.locale());
+	}
+	/**
+	* Records a title to show beside one project URI.
+	*
+	* An empty URI is ignored because there is nothing to label, and an empty title forgets the
+	* label rather than showing a blank row: that is the only way a project can take one back.
+	*/
+	setCachedProjectTitle(args) {
+		const uri = Scratch.Cast.toString(args.URI).trim();
+		if (uri.length === 0) return;
+		const title = Scratch.Cast.toString(args.TITLE).trim();
+		if (title.length === 0) {
+			this.projectTitles.delete(uri);
+			return;
+		}
+		this.projectTitles.set(uri, title);
+	}
 	/** The hat is started by the open path, so its own handler only has to accept the match. */
 	whenDslSourceOpened() {
 		return true;
@@ -1471,6 +2345,17 @@ var TurboWarpTitleMenuExtension = class {
 		this.store ?? (this.store = createDslStore({ databaseName: extensionConfig.id }));
 		return this.store;
 	}
+	/**
+	* Opens the extension cache on first use.
+	*
+	* No database name is passed: the Loader wrote those bytes and the Loader owns the name of the
+	* place they are in. Naming it here would put the same string in two packages, which is the
+	* cross-layer mismatch this family keeps rediscovering.
+	*/
+	requireCache() {
+		this.cache ?? (this.cache = createExtensionCache({ titleFor: (bucket) => this.projectTitles.get(bucket) }));
+		return this.cache;
+	}
 	recordFailure(error) {
 		this.lastError = describeStoreError(this.locale(), error);
 	}
@@ -1496,6 +2381,7 @@ var TurboWarpTitleMenuExtension = class {
 		Scratch.vm?.runtime?.startHats?.(`${extensionConfig.id}_whenAppMenuActionSelected`, { ACTION: id });
 		if (!builtinActionIds.includes(id)) return;
 		if (id === "files") this.showDslFiles();
+		if (id === "cache") this.showExtensionCache();
 		if (id === "reload") this.reloadOpenedDsl();
 		if (id === "about") this.showTitle();
 		if (id === "close") this.hideMenu();
@@ -1562,6 +2448,33 @@ var TurboWarpTitleMenuExtension = class {
 		});
 		return this.filesDialog;
 	}
+	/**
+	* Builds the cache dialog.
+	*
+	* Cache failures go to `lastDslError` through the same reporter, because an operator has one
+	* place to look for "what went wrong with storage" and the two stores fail for the same
+	* reasons — blocked storage, a full quota — even though they are separate databases.
+	*/
+	ensureCacheDialog() {
+		if (this.cacheDialog) return this.cacheDialog;
+		const mount = stageMount();
+		this.cacheDialog = createExtensionCacheDialog({
+			document: globalThis.document,
+			...mount ? { mount } : {},
+			locales: extensionCacheLocales,
+			initialLocale: this.locale(),
+			listProjects: () => this.requireCache().listProjects(),
+			listDigests: (bucket) => this.requireCache().listDigests(bucket),
+			totals: () => this.requireCache().totals(),
+			onReleaseProject: (bucket) => this.requireCache().releaseProject(bucket),
+			onReleaseDigest: (bucket, key) => this.requireCache().releaseDigests(bucket, [key]),
+			describeError: (error) => describeCacheError(this.locale(), error),
+			onError: (error) => {
+				this.lastError = describeCacheError(this.locale(), error);
+			}
+		});
+		return this.cacheDialog;
+	}
 	async addDslFile() {
 		const chosen = await this.pickDslFile();
 		if (chosen === null) return;
@@ -1616,6 +2529,8 @@ var publicApi = Object.freeze({
 	createApplicationMenu: createAppShellApplicationMenu,
 	createDslFilesDialog,
 	createDslStore,
+	createExtensionCache,
+	createExtensionCacheDialog,
 	createTitleDialog,
 	dslOpenEventName,
 	dslReloadEventName
