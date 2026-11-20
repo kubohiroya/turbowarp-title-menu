@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-title-menu",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Reusable title, application menu, and DSL source storage controls for TurboWarp.",
   "author": {
     "name": "Hiroya Kubo",
@@ -89,5 +89,36 @@
   "dependencies": {
     "@kubohiroya/turbowarp-app-shell": "0.6.1",
     "@kubohiroya/turbowarp-extension-loader": "0.12.0"
+  },
+  "turbowarpExtension": {
+    "resourceDeclaration": {
+      "schemaVersion": 1,
+      "resources": [
+        {
+          "type": "storage",
+          "usage": "conditional",
+          "purpose": {
+            "en": "Keep DSL documents in this browser",
+            "ja": "DSL文書をこのブラウザ内に保管する"
+          },
+          "condition": {
+            "en": "When using the DSL file manager",
+            "ja": "DSLファイル管理を使う場合"
+          }
+        },
+        {
+          "type": "files",
+          "usage": "conditional",
+          "purpose": {
+            "en": "Read the DSL file you select",
+            "ja": "利用者が選択したDSLファイルを読み取る"
+          },
+          "condition": {
+            "en": "When adding a DSL file through the file chooser",
+            "ja": "ファイル選択画面でDSLファイルを追加する場合"
+          }
+        }
+      ]
+    }
   }
 }
