@@ -7,7 +7,7 @@
 (function (Scratch) {
   'use strict';
 
-//#region node_modules/.pnpm/@kubohiroya+turbowarp-app-shell@0.6.0/node_modules/@kubohiroya/turbowarp-app-shell/dist/index.js
+//#region node_modules/.pnpm/@kubohiroya+turbowarp-app-shell@0.6.1/node_modules/@kubohiroya/turbowarp-app-shell/dist/index.js
 function isRecord$1(value) {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -990,7 +990,7 @@ function dispatchDslSourceEvent(type, record) {
 	target.dispatchEvent(event);
 }
 //#endregion
-//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.5.0/node_modules/@kubohiroya/turbowarp-extension-loader/dist/cache-gzip.js
+//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.12.0/node_modules/@kubohiroya/turbowarp-extension-loader/dist/cache-gzip.js
 /** Gzip utilities for persistent extension caches. The caller remains responsible for SHA-256 verification. */
 async function gzipBytes(bytes) {
 	if (!(bytes instanceof Uint8Array)) throw new TypeError("Expected Uint8Array");
@@ -1026,7 +1026,7 @@ async function gunzipBytes(compressed, maxOutputBytes) {
 	return result;
 }
 //#endregion
-//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.5.0/node_modules/@kubohiroya/turbowarp-extension-loader/dist/limits.js
+//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.12.0/node_modules/@kubohiroya/turbowarp-extension-loader/dist/limits.js
 var MiB = 1048576;
 /**
 * The one source of the default size limits. A file the project codec accepts as an archive entry
@@ -1043,7 +1043,7 @@ Object.freeze({
 });
 Math.ceil(DEFAULT_ENTRY_BYTES / 3) * 4 + 1024;
 //#endregion
-//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.5.0/node_modules/@kubohiroya/turbowarp-extension-loader/dist/indexeddb-cache.js
+//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.12.0/node_modules/@kubohiroya/turbowarp-extension-loader/dist/indexeddb-cache.js
 /**
 * The bucket for bytes that belong to no one project.
 *
@@ -1058,7 +1058,13 @@ var SHARED_BUCKET = "shared";
 */
 function createIndexedDBContentCache({ indexedDB = globalThis.indexedDB, databaseName = "turbowarp-plus-extension-cache", appURI, sharedDigests, maxBytes = 33554432, maxDecompressedBytes = DEFAULT_ENTRY_BYTES, now = Date.now } = {}) {
 	if (!indexedDB || typeof indexedDB.open !== "function") throw new Error("IndexedDB unavailable");
-	if (typeof databaseName !== "string" || !databaseName || !Number.isSafeInteger(maxBytes) || maxBytes < 1 || !Number.isSafeInteger(maxDecompressedBytes) || maxDecompressedBytes < 1 || typeof now !== "function") throw new TypeError("Invalid IndexedDB cache options");
+	if (typeof databaseName !== "string" || !databaseName || !Number.isSafeInteger(maxBytes) || maxBytes < 1 || !Number.isSafeInteger(maxDecompressedBytes) || maxDecompressedBytes < 1 || typeof now !== "function" || appURI !== void 0 && typeof appURI !== "string" && typeof appURI !== "function") throw new TypeError("Invalid IndexedDB cache options");
+	/** The project a write is filed under, read when it happens. */
+	function currentAppURI() {
+		const uri = typeof appURI === "function" ? appURI() : appURI;
+		if (uri !== void 0 && typeof uri !== "string") throw new TypeError("appURI must return a string or undefined");
+		return uri;
+	}
 	let dbPromise;
 	function open() {
 		if (!dbPromise) dbPromise = new Promise((resolve, reject) => {
@@ -1206,11 +1212,12 @@ function createIndexedDBContentCache({ indexedDB = globalThis.indexedDB, databas
 			if (!keyValid(key) || !validBytes(bytes)) throw new TypeError("Cache content requires a SHA-256 key and bytes");
 			if (signal?.aborted) throw signal.reason;
 			if (bytes.byteLength > maxDecompressedBytes) throw new RangeError("Cache input exceeds decompressed size limit");
+			const uri = currentAppURI();
 			const originalBytes = bytes.byteLength;
 			const compressed = await gzipBytes(bytes);
 			if (signal?.aborted) throw signal.reason;
 			const db = await open();
-			const bucket = appURI === void 0 || sharedDigests?.has(key) ? SHARED_BUCKET : appURI;
+			const bucket = uri === void 0 || sharedDigests?.has(key) ? SHARED_BUCKET : uri;
 			return transaction(db, "readwrite", (store, _set, tx) => {
 				const usage = tx.objectStore("usage");
 				const time = now();
