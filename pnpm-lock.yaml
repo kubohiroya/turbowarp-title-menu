@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@kubohiroya/turbowarp-app-shell':
-        specifier: 0.6.0
-        version: 0.6.0
+        specifier: 0.6.1
+        version: 0.6.1
       '@kubohiroya/turbowarp-extension-loader':
-        specifier: 0.5.0
-        version: 0.5.0
+        specifier: 0.12.0
+        version: 0.12.0
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.5
@@ -22,8 +22,8 @@ importers:
         specifier: 0.5.0
         version: 0.5.0
       '@kubohiroya/vite-plugin-turbowarp-extension':
-        specifier: 0.10.0
-        version: 0.10.0(vite@8.3.4(@types/node@24.13.3)(esbuild@0.28.1))
+        specifier: 0.11.0
+        version: 0.11.0(vite@8.3.4(@types/node@24.13.3)(esbuild@0.28.1))
       '@types/node':
         specifier: ^24.13.3
         version: 24.13.3
@@ -265,20 +265,20 @@ packages:
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
 
-  '@kubohiroya/turbowarp-app-shell@0.6.0':
-    resolution: {integrity: sha512-+A3tVBy5s7/1s5bxLDd6LNVyEbWotXaF1bFEttIX1Wh5E80Yz4q0G5otphOAPMUPSsKJ023QZDfiLKrtG5U+4g==}
+  '@kubohiroya/turbowarp-app-shell@0.6.1':
+    resolution: {integrity: sha512-IHJWp9QGjQfGyS/et3YFQgsKwaHqEEFMPJw/yXY6mmcaLiscPdfI9BF1uFEeVzjuQU1aq7EiiaGu2UBDEWoFvQ==}
     engines: {node: '>=24'}
 
-  '@kubohiroya/turbowarp-extension-loader@0.5.0':
-    resolution: {integrity: sha512-vL3J638OXN/TtqJmXG3tuFYv5ximJICZAtue0bBpJLcuejSNLJUrqQFX2YT4MITKk0TG3qZQ3z7ym6cvCdJPXQ==}
+  '@kubohiroya/turbowarp-extension-loader@0.12.0':
+    resolution: {integrity: sha512-mgt5y2oToh8DM9Sa9N8zV1CRMo6GC/zPO2RfLgCFC5gsgI58eP6/OHEX/OjFJGYteh4upBohgz35I2QrCFMZXg==}
     engines: {node: '>=26'}
 
   '@kubohiroya/turbowarp-extension-manifest@0.5.0':
     resolution: {integrity: sha512-YD8fwGTwTC6oMinmVLRp5+x/6piKLTYNraKnsc+oEi/w6NFdePm1ocV8eHnBBMcqEO2usr2mI/0qnV66Ex35YA==}
     engines: {node: '>=24'}
 
-  '@kubohiroya/vite-plugin-turbowarp-extension@0.10.0':
-    resolution: {integrity: sha512-N/c1gsmOS9dozskUzmSLRwqVZzOLDGs44cOPBv2VdITR2v//TFQKlNw3jhBLVeyMfdlfAICwrpvC74xFgZxrNA==}
+  '@kubohiroya/vite-plugin-turbowarp-extension@0.11.0':
+    resolution: {integrity: sha512-jk6CxthocSB5wqWYwoKHdwbHq9iBxqlkXjz7CeWr5KgLTVp49ywA7iREYG1MbAVhkpsWVxm7THLRF5E/mD2v6Q==}
     engines: {node: '>=24'}
     peerDependencies:
       vite: '>=8.0.0'
@@ -1229,13 +1229,13 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
-  '@kubohiroya/turbowarp-app-shell@0.6.0': {}
+  '@kubohiroya/turbowarp-app-shell@0.6.1': {}
 
-  '@kubohiroya/turbowarp-extension-loader@0.5.0': {}
+  '@kubohiroya/turbowarp-extension-loader@0.12.0': {}
 
   '@kubohiroya/turbowarp-extension-manifest@0.5.0': {}
 
-  '@kubohiroya/vite-plugin-turbowarp-extension@0.10.0(vite@8.3.4(@types/node@24.13.3)(esbuild@0.28.1))':
+  '@kubohiroya/vite-plugin-turbowarp-extension@0.11.0(vite@8.3.4(@types/node@24.13.3)(esbuild@0.28.1))':
     dependencies:
       acorn: 8.18.0
       vite: 8.3.4(@types/node@24.13.3)(esbuild@0.28.1)

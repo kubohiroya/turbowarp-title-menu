@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-title-menu",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Reusable title, application menu, and DSL source storage controls for TurboWarp.",
   "author": {
     "name": "Hiroya Kubo",
@@ -77,7 +77,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@kubohiroya/turbowarp-extension-manifest": "0.5.0",
-    "@kubohiroya/vite-plugin-turbowarp-extension": "0.10.0",
+    "@kubohiroya/vite-plugin-turbowarp-extension": "0.11.0",
     "@types/node": "^24.13.3",
     "eslint": "^9.39.5",
     "fake-indexeddb": "6.2.5",
@@ -87,7 +87,7 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "@kubohiroya/turbowarp-app-shell": "0.6.0",
-    "@kubohiroya/turbowarp-extension-loader": "0.5.0"
+    "@kubohiroya/turbowarp-app-shell": "0.6.1",
+    "@kubohiroya/turbowarp-extension-loader": "0.12.0"
   }
 }
