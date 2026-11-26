@@ -12,8 +12,8 @@ importers:
         specifier: 0.6.1
         version: 0.6.1
       '@kubohiroya/turbowarp-extension-loader':
-        specifier: 0.16.1
-        version: 0.16.1
+        specifier: 0.16.2
+        version: 0.16.2
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.5
@@ -272,8 +272,8 @@ packages:
     resolution: {integrity: sha512-IHJWp9QGjQfGyS/et3YFQgsKwaHqEEFMPJw/yXY6mmcaLiscPdfI9BF1uFEeVzjuQU1aq7EiiaGu2UBDEWoFvQ==}
     engines: {node: '>=24'}
 
-  '@kubohiroya/turbowarp-extension-loader@0.16.1':
-    resolution: {integrity: sha512-jDrbc+QDRor1fxOg9CtQde7M9qOltxJj+RsS+mCK0awUWmTTPB2zxExVQaOC/jx7xbkiGGQsC+cQ+ngAjTPKnw==}
+  '@kubohiroya/turbowarp-extension-loader@0.16.2':
+    resolution: {integrity: sha512-Ef1Ycy/+SIoFy3/7tTOjLJGXKADVBNPZIbnAKnFVZwwLy2U0Wp0vAG0QwnZLQfTwYWqeE3JznavXxhcaR8a9bw==}
     engines: {node: '>=26'}
 
   '@kubohiroya/turbowarp-extension-manifest@0.8.0':
@@ -1239,7 +1239,7 @@ snapshots:
 
   '@kubohiroya/turbowarp-app-shell@0.6.1': {}
 
-  '@kubohiroya/turbowarp-extension-loader@0.16.1': {}
+  '@kubohiroya/turbowarp-extension-loader@0.16.2': {}
 
   '@kubohiroya/turbowarp-extension-manifest@0.8.0': {}
 
