@@ -53,7 +53,7 @@ installGlobals();
 
 const {TurboWarpTitleMenuExtension} = await import('../src/extension');
 const {createDslStore} = await import('../src/dsl-store');
-const {dslFilesLocales, extensionCacheLocales} = await import('../src/locales');
+const {dslFilesLocales, cacheManagerLocales} = await import('../src/locales');
 const {dslOpenEventName, dslReloadEventName} = await import('../src/events');
 
 const databaseName = 'kubohiroyaturbowarptitlemenu';
@@ -472,7 +472,7 @@ describe('menu argument shape', () => {
 
 describe('the extension cache dialog', () => {
   const projectUri = 'https://example.com/turbowarp-plus-projects/aa/bb/one';
-  const cacheLabels = extensionCacheLocales.en;
+  const cacheLabels = cacheManagerLocales.en;
 
   /**
    * Seeds through the Loader's own cache, against the same global IndexedDB the extension opens.
@@ -542,8 +542,9 @@ describe('the extension cache dialog', () => {
     await seedCache(projectUri, 'extension bytes');
     await createExtension().showExtensionCache();
 
+    descendants(stage).find((node) => node.getAttribute('data-cache-select-all') !== null)?.click();
     buttonsWithText(stage, cacheLabels.release)[0]?.click();
-    buttonsWithText(stage, cacheLabels.confirmRelease)[0]?.click();
+    buttonsWithText(stage, cacheLabels.confirmRelease.replace('{uses}', '1'))[0]?.click();
 
     await vi.waitFor(() => expect(rendered()).toContain(cacheLabels.empty));
     const cache = createIndexedDBContentCache();

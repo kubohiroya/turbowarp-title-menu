@@ -1,4 +1,5 @@
 import { SHARED_BUCKET } from '@kubohiroya/turbowarp-extension-loader/indexeddb-cache';
+import { type CacheAssetRow } from './cache-asset-model.js';
 /**
  * A read-and-release view over the extension bytes the Loader caches in IndexedDB.
  *
@@ -83,6 +84,19 @@ export interface ExtensionCache {
     /** Drop named digests from one bucket, under the same rule. */
     releaseDigests(bucket: string, keys: readonly string[]): Promise<CacheReleaseResult>;
     totals(): Promise<ExtensionCacheTotals>;
+    /**
+     * Every use of every stored copy, with the names, kinds and addresses the projects recorded.
+     * One row per project and copy; see `cache-asset-model` for how totals avoid double counting.
+     */
+    listAssets(): Promise<CacheAssetRow[]>;
+    /**
+     * Release chosen uses across projects in one transaction. A use that is already gone counts as
+     * nothing released, so the result is what happened even if the list on screen was stale.
+     */
+    releaseAssets(claims: readonly {
+        bucket: string;
+        key: string;
+    }[]): Promise<CacheReleaseResult>;
     close(): Promise<void>;
 }
 export { SHARED_BUCKET };

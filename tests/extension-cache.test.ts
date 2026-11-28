@@ -209,3 +209,30 @@ describe('without storage', () => {
     await expect(cache.listProjects()).rejects.toMatchObject({code: 'unavailable'});
   });
 });
+
+describe('asset listing over the Loader cache', () => {
+  it('lists labelled uses and releases chosen ones across projects', async () => {
+    const shared = createIndexedDBContentCache({indexedDB, appURI: projectA, now: () => (clock += 1000)});
+    const bytes = new TextEncoder().encode('one copy');
+    const key = digestOf('one copy');
+    await shared.put(key, bytes, {label: {ref: 'costume:cat', kind: 'costume', name: 'cat.svg'}});
+    await shared.close();
+    const other = createIndexedDBContentCache({indexedDB, appURI: projectB, now: () => (clock += 1000)});
+    await other.put(key, bytes, {label: {ref: 'sound:pop', kind: 'sound', name: 'pop'}});
+    await other.close();
+
+    const cache = createExtensionCache({indexedDB, titleFor: (bucket) => (bucket === projectB ? 'Two' : undefined)});
+    const rows = await cache.listAssets();
+    expect(rows.map((row) => [row.bucket, row.names, row.uses])).toEqual([
+      [projectA, ['cat.svg'], 2],
+      [projectB, ['pop'], 2]
+    ]);
+    expect(rows[1]!.projectTitle).toBe('Two');
+    expect(await cache.releaseAssets([{bucket: projectA, key}])).toEqual({released: 1, freed: 0});
+    const after = await cache.releaseAssets([{bucket: projectA, key}, {bucket: projectB, key}]);
+    expect(after.released).toBe(1);
+    expect(after.freed).toBeGreaterThan(0);
+    expect(await cache.listAssets()).toEqual([]);
+    await cache.close();
+  });
+});

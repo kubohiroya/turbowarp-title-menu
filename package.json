@@ -88,7 +88,7 @@
   },
   "dependencies": {
     "@kubohiroya/turbowarp-app-shell": "0.6.1",
-    "@kubohiroya/turbowarp-extension-loader": "0.16.3"
+    "@kubohiroya/turbowarp-extension-loader": "0.17.0"
   },
   "turbowarpExtension": {
     "resourceDeclaration": {
