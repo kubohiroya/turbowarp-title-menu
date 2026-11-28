@@ -1,5 +1,6 @@
 import type { DslFilesDialogLocaleText } from './dsl-files-dialog';
 import type { ExtensionCacheDialogLocaleText } from './extension-cache-dialog';
+import type { CacheManagerLocaleText } from './cache-manager-dialog';
 import type { TitleDialogLocaleText } from './title-dialog';
 export type SupportedLocale = 'en' | 'ja';
 export interface MenuActionLabels {
@@ -24,6 +25,8 @@ export declare const dslFilesLocales: Readonly<Record<SupportedLocale, DslFilesD
  * that files its bytes under somebody else's URI corrupts this list and nothing else.
  */
 export declare const extensionCacheLocales: Readonly<Record<SupportedLocale, ExtensionCacheDialogLocaleText>>;
+/** Text for the cache manager table. */
+export declare const cacheManagerLocales: Readonly<Record<SupportedLocale, CacheManagerLocaleText>>;
 /**
  * Turns a cache failure into operator-facing text.
  *

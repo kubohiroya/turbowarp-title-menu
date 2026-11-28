@@ -684,27 +684,27 @@ var defaultSortDirections = Object.freeze({
 	updatedAt: "desc",
 	byteLength: "desc"
 });
-function requireLocales$1(value) {
+function requireLocales$2(value) {
 	if (!isRecord(value) || Object.keys(value).length === 0) throw new TypeError("locales must contain at least one locale");
 	return value;
 }
-function textFor$1(locales, locale) {
+function textFor$2(locales, locale) {
 	const text = locales[locale] ?? locales["en"] ?? Object.values(locales)[0];
 	if (text === void 0) throw new TypeError("locales must contain at least one locale");
 	return text;
 }
-function defaultFormatSize$1(byteLength) {
+function defaultFormatSize$2(byteLength) {
 	if (byteLength < 1024) return `${byteLength} B`;
 	if (byteLength < 1048576) return `${(byteLength / 1024).toFixed(1)} KB`;
 	return `${(byteLength / 1048576).toFixed(1)} MB`;
 }
-function defaultFormatDate$1(isoDate) {
+function defaultFormatDate$2(isoDate) {
 	const parsed = new Date(isoDate);
 	if (Number.isNaN(parsed.getTime())) return isoDate;
 	const pad = (value) => String(value).padStart(2, "0");
 	return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
 }
-function defaultDescribeError$1(error) {
+function defaultDescribeError$2(error) {
 	if (error instanceof Error && error.message.length > 0) return error.message;
 	return String(error);
 }
@@ -712,10 +712,10 @@ function createDslFilesDialog(options) {
 	if (!isRecord(options)) throw new TypeError("DSL files dialog options must be an object");
 	const document = requireDocument(options.document ?? globalThis.document);
 	const mount = requireElement(options.mount ?? document.body, "mount");
-	const locales = requireLocales$1(options.locales);
-	const describeError = options.describeError ?? defaultDescribeError$1;
-	const formatSize = options.formatSize ?? defaultFormatSize$1;
-	const formatDate = options.formatDate ?? defaultFormatDate$1;
+	const locales = requireLocales$2(options.locales);
+	const describeError = options.describeError ?? defaultDescribeError$2;
+	const formatSize = options.formatSize ?? defaultFormatSize$2;
+	const formatDate = options.formatDate ?? defaultFormatDate$2;
 	let locale = options.initialLocale ?? "en";
 	let sort = options.initialSort ?? defaultDslSort;
 	let summaries = [];
@@ -903,7 +903,7 @@ function createDslFilesDialog(options) {
 	}
 	function render() {
 		if (disposed) return;
-		const text = textFor$1(locales, locale);
+		const text = textFor$2(locales, locale);
 		heading.textContent = text.title;
 		closeButton.textContent = text.close;
 		closeButton.setAttribute("aria-label", text.close);
@@ -990,7 +990,7 @@ function dispatchDslSourceEvent(type, record) {
 	target.dispatchEvent(event);
 }
 //#endregion
-//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.16.3/node_modules/@kubohiroya/turbowarp-extension-loader/dist/cache-gzip.js
+//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.17.0/node_modules/@kubohiroya/turbowarp-extension-loader/dist/cache-gzip.js
 /** Gzip utilities for persistent extension caches. The caller remains responsible for SHA-256 verification. */
 async function gzipBytes(bytes) {
 	if (!(bytes instanceof Uint8Array)) throw new TypeError("Expected Uint8Array");
@@ -1026,7 +1026,7 @@ async function gunzipBytes(compressed, maxOutputBytes) {
 	return result;
 }
 //#endregion
-//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.16.3/node_modules/@kubohiroya/turbowarp-extension-loader/dist/limits.js
+//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.17.0/node_modules/@kubohiroya/turbowarp-extension-loader/dist/limits.js
 var MiB = 1048576;
 /**
 * The one source of the default size limits. A file the project codec accepts as an archive entry
@@ -1043,7 +1043,7 @@ Object.freeze({
 });
 Math.ceil(DEFAULT_ENTRY_BYTES / 3) * 4 + 1024;
 //#endregion
-//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.16.3/node_modules/@kubohiroya/turbowarp-extension-loader/dist/indexeddb-cache.js
+//#region node_modules/.pnpm/@kubohiroya+turbowarp-extension-loader@0.17.0/node_modules/@kubohiroya/turbowarp-extension-loader/dist/indexeddb-cache.js
 /**
 * The bucket for bytes that belong to no one project.
 *
@@ -1053,6 +1053,58 @@ Math.ceil(DEFAULT_ENTRY_BYTES / 3) * 4 + 1024;
 * want. It is not a URI, so no project can name it.
 */
 var SHARED_BUCKET = "shared";
+var kinds = /* @__PURE__ */ new Set([
+	"costume",
+	"backdrop",
+	"sound",
+	"document",
+	"extension",
+	"other"
+]);
+var maxLabelText = 1024;
+var maxLabelsPerCall = 256;
+/** Keep only a URL that can be shown without leaking a credential or a one-time token. */
+function sanitizeURL(value) {
+	let url;
+	try {
+		url = new URL(value);
+	} catch {
+		return {};
+	}
+	if (url.protocol !== "https:" && url.protocol !== "http:") return {};
+	const redacted = !!(url.username || url.password || url.search || url.hash);
+	url.username = "";
+	url.password = "";
+	url.search = "";
+	url.hash = "";
+	return redacted ? {
+		url: url.href,
+		urlRedacted: true
+	} : { url: url.href };
+}
+function labelRecord(bucket, key, label, observedAt) {
+	if (!label || typeof label !== "object" || typeof label.ref !== "string" || label.ref.length > maxLabelText) throw new TypeError("A cache label needs a string ref");
+	const text = (field) => {
+		const value = label[field];
+		if (value === void 0) return void 0;
+		if (typeof value !== "string" || value.length > maxLabelText) throw new TypeError(`Invalid cache label ${field}`);
+		return value;
+	};
+	if (label.kind !== void 0 && !kinds.has(label.kind)) throw new TypeError("Invalid cache label kind");
+	const name = text("name");
+	const projectName = text("projectName");
+	const url = text("url");
+	return {
+		bucket,
+		key,
+		ref: label.ref,
+		observedAt,
+		...label.kind === void 0 ? {} : { kind: label.kind },
+		...name === void 0 ? {} : { name },
+		...projectName === void 0 ? {} : { projectName },
+		...url === void 0 ? {} : sanitizeURL(url)
+	};
+}
 /** Persistent, content-addressed cache. The Loader independently verifies SHA-256 on every hit.
 * Storage is untrusted: this adapter is not an authorization or integrity boundary.
 */
@@ -1092,6 +1144,53 @@ function createIndexedDBContentCache({ indexedDB = globalThis.indexedDB, databas
 		});
 		return dbPromise;
 	}
+	let labelsPromise;
+	function openLabels() {
+		if (!labelsPromise) labelsPromise = new Promise((resolve, reject) => {
+			const request = indexedDB.open(`${databaseName}-labels`, 1);
+			request.onupgradeneeded = () => {
+				const db = request.result;
+				if (!db.objectStoreNames.contains("labels")) db.createObjectStore("labels", { keyPath: [
+					"bucket",
+					"key",
+					"ref"
+				] }).createIndex("claim", ["bucket", "key"]);
+			};
+			request.onsuccess = () => {
+				const db = request.result;
+				db.onversionchange = () => db.close();
+				resolve(db);
+			};
+			request.onerror = () => reject(request.error || /* @__PURE__ */ new Error("IndexedDB open failed"));
+			request.onblocked = () => reject(/* @__PURE__ */ new Error("IndexedDB upgrade blocked"));
+		}).catch((error) => {
+			labelsPromise = void 0;
+			throw error;
+		});
+		return labelsPromise;
+	}
+	/**
+	* Drop the labels of claims that were released. Best effort: a label whose claim is gone is
+	* never listed, so a failure here leaves nothing visible behind.
+	*/
+	async function forgetLabels(claims) {
+		if (!claims.length) return;
+		try {
+			await transaction(await openLabels(), "readwrite", (store) => {
+				for (const { bucket, key } of claims) {
+					const request = store.index("claim").getAllKeys([bucket, key]);
+					request.onsuccess = () => {
+						for (const label of request.result) store.delete(label);
+					};
+				}
+			}, "labels");
+		} catch {}
+	}
+	/** The bucket a write is filed under now. */
+	const bucketFor = (key) => {
+		const uri = currentAppURI();
+		return uri === void 0 || sharedDigests?.has(key) ? SHARED_BUCKET : uri;
+	};
 	function transaction(db, mode, work, stores = "content") {
 		return new Promise((resolve, reject) => {
 			const tx = db.transaction(stores, mode);
@@ -1144,11 +1243,36 @@ function createIndexedDBContentCache({ indexedDB = globalThis.indexedDB, databas
 			}
 		};
 	}
+	/**
+	* Release claims that exist, then free the bytes no claim is left on. Every delete is issued
+	* before any check of what remains, so releasing two claims on one digest frees it once.
+	*/
+	function releaseExisting(store, usage, claims, result) {
+		for (const { bucket, key } of claims) {
+			usage.delete([bucket, key]);
+			result.released++;
+		}
+		for (const key of new Set(claims.map((claim) => claim.key))) {
+			const others = usage.index("key").count(key);
+			others.onsuccess = () => {
+				if (others.result > 0) return;
+				const record = store.get(key);
+				record.onsuccess = () => {
+					const entry = record.result;
+					if (!entry) return;
+					result.freed += entry.bytes?.byteLength || 0;
+					store.delete(key);
+				};
+			};
+		}
+	}
 	async function release(bucket, keys) {
 		if (typeof bucket !== "string" || !bucket) throw new TypeError("A bucket name is required");
 		if (keys !== null && (!Array.isArray(keys) || keys.some((key) => !keyValid(key)))) throw new TypeError("Cache keys must be SHA-256 digests");
 		const wanted = keys === null ? null : new Set(keys);
-		return transaction(await open(), "readwrite", (store, set, tx) => {
+		const db = await open();
+		const releasedClaims = [];
+		const outcome = await transaction(db, "readwrite", (store, set, tx) => {
 			const usage = tx.objectStore("usage");
 			const result = {
 				released: 0,
@@ -1157,24 +1281,62 @@ function createIndexedDBContentCache({ indexedDB = globalThis.indexedDB, databas
 			set(result);
 			const mine = usage.index("bucket").getAll(bucket);
 			mine.onsuccess = () => {
-				for (const claim of mine.result) {
-					if (wanted !== null && !wanted.has(claim.key)) continue;
-					usage.delete([bucket, claim.key]);
-					result.released++;
-					const others = usage.index("key").getAll(claim.key);
-					others.onsuccess = () => {
-						if (others.result.some((other) => other.bucket !== bucket)) return;
-						const record = store.get(claim.key);
-						record.onsuccess = () => {
-							const entry = record.result;
-							if (!entry) return;
-							result.freed += entry.bytes?.byteLength || 0;
-							store.delete(claim.key);
-						};
-					};
-				}
+				const claims = mine.result.filter((claim) => wanted === null || wanted.has(claim.key)).map((claim) => ({
+					bucket,
+					key: claim.key
+				}));
+				releasedClaims.push(...claims);
+				releaseExisting(store, usage, claims, result);
 			};
 		}, ["content", "usage"]);
+		await forgetLabels(releasedClaims);
+		return outcome;
+	}
+	async function releaseClaims(claims) {
+		if (!Array.isArray(claims) || claims.some((claim) => !claim || typeof claim.bucket !== "string" || !claim.bucket || !keyValid(claim.key))) throw new TypeError("Each claim needs a bucket and a SHA-256 digest");
+		const unique = [...new Map(claims.map((claim) => [JSON.stringify([claim.bucket, claim.key]), {
+			bucket: claim.bucket,
+			key: claim.key
+		}])).values()];
+		const db = await open();
+		const releasedClaims = [];
+		const outcome = await transaction(db, "readwrite", (store, set, tx) => {
+			const usage = tx.objectStore("usage");
+			const result = {
+				released: 0,
+				freed: 0
+			};
+			set(result);
+			if (!unique.length) return;
+			let pending = unique.length;
+			const existing = [];
+			for (const claim of unique) {
+				const request = usage.getKey([claim.bucket, claim.key]);
+				request.onsuccess = () => {
+					if (request.result !== void 0) existing.push(claim);
+					if (--pending) return;
+					releasedClaims.push(...existing);
+					releaseExisting(store, usage, existing, result);
+				};
+			}
+		}, ["content", "usage"]);
+		await forgetLabels(releasedClaims);
+		return outcome;
+	}
+	/** Record labels where `bucket` still claims `key`. */
+	async function describeIn(bucket, key, labels) {
+		if (labels.length > maxLabelsPerCall) throw new RangeError("Too many cache labels in one call");
+		const time = now();
+		const records = labels.map((label) => labelRecord(bucket, key, label, time));
+		if (!records.length) return 0;
+		if (!await transaction(await open(), "readonly", (store, set) => {
+			const request = store.getKey([bucket, key]);
+			request.onsuccess = () => set(request.result !== void 0);
+		}, "usage")) return 0;
+		await transaction(await openLabels(), "readwrite", (store) => {
+			for (const record of records) store.put(record);
+		}, "labels");
+		return records.length;
 	}
 	return Object.freeze({
 		async get(key, { signal } = {}) {
@@ -1208,8 +1370,9 @@ function createIndexedDBContentCache({ indexedDB = globalThis.indexedDB, databas
 			if (signal?.aborted) throw signal.reason;
 			return bytes;
 		},
-		async put(key, bytes, { signal } = {}) {
+		async put(key, bytes, { signal, label } = {}) {
 			if (!keyValid(key) || !validBytes(bytes)) throw new TypeError("Cache content requires a SHA-256 key and bytes");
+			if (label !== void 0) labelRecord(SHARED_BUCKET, key, label, 0);
 			if (signal?.aborted) throw signal.reason;
 			if (bytes.byteLength > maxDecompressedBytes) throw new RangeError("Cache input exceeds decompressed size limit");
 			const uri = currentAppURI();
@@ -1218,7 +1381,7 @@ function createIndexedDBContentCache({ indexedDB = globalThis.indexedDB, databas
 			if (signal?.aborted) throw signal.reason;
 			const db = await open();
 			const bucket = uri === void 0 || sharedDigests?.has(key) ? SHARED_BUCKET : uri;
-			return transaction(db, "readwrite", (store, _set, tx) => {
+			await transaction(db, "readwrite", (store, _set, tx) => {
 				const usage = tx.objectStore("usage");
 				const time = now();
 				if (compressed.byteLength <= maxBytes) {
@@ -1240,12 +1403,16 @@ function createIndexedDBContentCache({ indexedDB = globalThis.indexedDB, databas
 				}
 				sweep(store, usage, compressed.byteLength <= maxBytes ? key : null);
 			}, ["content", "usage"]);
+			if (label !== void 0) await describeIn(bucket, key, [label]);
 		},
 		async clear() {
-			return transaction(await open(), "readwrite", (store, _set, tx) => {
+			await transaction(await open(), "readwrite", (store, _set, tx) => {
 				store.clear();
 				tx.objectStore("usage").clear();
 			}, ["content", "usage"]);
+			try {
+				await transaction(await openLabels(), "readwrite", (store) => store.clear(), "labels");
+			} catch {}
 		},
 		async getSize() {
 			return transaction(await open(), "readonly", (store, set) => {
@@ -1313,13 +1480,204 @@ function createIndexedDBContentCache({ indexedDB = globalThis.indexedDB, databas
 		deleteFromBucket(bucket, keys) {
 			return release(bucket, keys);
 		},
+		releaseClaims,
+		async describe(key, labels, { bucket } = {}) {
+			if (!keyValid(key)) throw new TypeError("Invalid SHA-256 cache key");
+			if (bucket !== void 0 && (typeof bucket !== "string" || !bucket)) throw new TypeError("A bucket name is required");
+			const list = Array.isArray(labels) ? labels : [labels];
+			return describeIn(bucket ?? bucketFor(key), key, list);
+		},
+		async listEntries() {
+			const { records, claims } = await transaction(await open(), "readonly", (store, set, tx) => {
+				const claims = tx.objectStore("usage").getAll();
+				const records = store.getAll();
+				claims.onsuccess = () => {
+					records.onsuccess = () => set({
+						records: records.result,
+						claims: claims.result
+					});
+				};
+			}, ["content", "usage"]);
+			let labels = [];
+			try {
+				labels = await transaction(await openLabels(), "readonly", (store, set) => {
+					const request = store.getAll();
+					request.onsuccess = () => set(request.result);
+				}, "labels");
+			} catch {}
+			const claimsByKey = /* @__PURE__ */ new Map();
+			for (const claim of claims) claimsByKey.set(claim.key, [...claimsByKey.get(claim.key) || [], claim]);
+			const claimed = new Set(claims.map((claim) => JSON.stringify([claim.bucket, claim.key])));
+			const labelsByKey = /* @__PURE__ */ new Map();
+			for (const label of labels) {
+				if (!claimed.has(JSON.stringify([label.bucket, label.key]))) continue;
+				labelsByKey.set(label.key, [...labelsByKey.get(label.key) || [], label]);
+			}
+			return records.filter(validRecord).sort((a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0).map((record) => {
+				const mine = claimsByKey.get(record.key) || [];
+				return Object.freeze({
+					key: record.key,
+					bytes: record.bytes.byteLength,
+					originalBytes: record.originalBytes,
+					lastAccess: Math.max(record.lastAccess || 0, ...mine.map((claim) => claim.lastAccess)),
+					claims: Object.freeze(mine.map((claim) => Object.freeze({
+						bucket: claim.bucket,
+						lastAccess: claim.lastAccess
+					}))),
+					labels: Object.freeze((labelsByKey.get(record.key) || []).map((label) => {
+						const { key: _key, ...rest } = label;
+						return Object.freeze(rest);
+					}))
+				});
+			});
+		},
 		async close() {
 			if (dbPromise) {
 				(await dbPromise).close();
 				dbPromise = void 0;
 			}
+			if (labelsPromise) {
+				try {
+					(await labelsPromise).close();
+				} catch {}
+				labelsPromise = void 0;
+			}
 		}
 	});
+}
+//#endregion
+//#region src/cache-asset-model.ts
+/**
+* The table model behind the cache manager: rows, search, filters, sort, selection and totals.
+*
+* It holds no DOM and no storage. It takes what the Loader's `listEntries()` returns and turns it
+* into what a person can read: one row per project that uses one stored copy, with the names,
+* kinds and addresses that project recorded for it. Everything about what is stored stays the
+* Loader's; this module only decides how it is shown and what a selection means.
+*
+* Two numbers are kept apart on purpose. A row's `bytes` is the size of the stored copy it uses,
+* and the same copy appears once per project that uses it, so adding rows up overstates what the
+* cache holds. Totals therefore count each stored copy once, and "what a release frees" counts
+* only copies whose every use is selected.
+*/
+var separator = "\n";
+var cacheAssetRowId = (bucket, key) => `${bucket}${separator}${key}`;
+/** Turn the Loader's listing into rows: one per project that claims a stored copy. */
+function cacheAssetRows(entries, titleFor) {
+	const rows = [];
+	for (const entry of entries) for (const claim of entry.claims) {
+		const labels = entry.labels.filter((label) => label.bucket === claim.bucket);
+		const unique = (values) => [...new Set(values.filter((value) => value !== void 0 && value !== ""))];
+		const recordedTitle = unique(labels.map((label) => label.projectName))[0];
+		const hostTitle = titleFor?.(claim.bucket);
+		const projectTitle = hostTitle !== void 0 && hostTitle !== "" ? hostTitle : recordedTitle;
+		rows.push(Object.freeze({
+			id: cacheAssetRowId(claim.bucket, entry.key),
+			key: entry.key,
+			bucket: claim.bucket,
+			shared: claim.bucket === SHARED_BUCKET,
+			...projectTitle === void 0 ? {} : { projectTitle },
+			names: Object.freeze(unique(labels.map((label) => label.name))),
+			kinds: Object.freeze(unique(labels.map((label) => label.kind))),
+			urls: Object.freeze(unique(labels.map((label) => label.url))),
+			urlRedacted: labels.some((label) => label.urlRedacted === true),
+			refs: Object.freeze(unique(labels.map((label) => label.ref))),
+			bytes: entry.bytes,
+			originalBytes: entry.originalBytes,
+			lastAccess: claim.lastAccess,
+			uses: entry.claims.length
+		}));
+	}
+	return rows;
+}
+var collator = new Intl.Collator(void 0, {
+	numeric: true,
+	sensitivity: "base"
+});
+function sortValue(row, column) {
+	switch (column) {
+		case "name": return row.names[0] ?? "";
+		case "kind": return row.kinds[0] ?? "";
+		case "project": return row.shared ? "" : row.projectTitle ?? row.bucket;
+		case "size": return row.bytes;
+		case "lastAccess": return row.lastAccess;
+	}
+}
+/**
+* Filter and sort rows. Rows that compare equal keep a fixed order, by digest then bucket, so the
+* table does not reshuffle between listings. Rows with no value for the sorted column go last in
+* either direction, because "unknown" is not the smallest name.
+*/
+function queryCacheAssets(rows, query = {}) {
+	const text = query.text?.trim().toLocaleLowerCase() ?? "";
+	const filtered = rows.filter((row) => {
+		if (query.bucket !== void 0 && row.bucket !== query.bucket) return false;
+		if (query.kind !== void 0) {
+			if (query.kind === "unknown" ? row.kinds.length > 0 : !row.kinds.includes(query.kind)) return false;
+		}
+		if (!text) return true;
+		return [
+			...row.names,
+			...row.urls,
+			row.projectTitle ?? "",
+			row.bucket,
+			row.key
+		].some((value) => value.toLocaleLowerCase().includes(text));
+	});
+	const column = query.sort ?? "lastAccess";
+	const sign = (query.direction ?? (column === "lastAccess" || column === "size" ? "descending" : "ascending")) === "ascending" ? 1 : -1;
+	return filtered.sort((left, right) => {
+		const a = sortValue(left, column);
+		const b = sortValue(right, column);
+		const aMissing = a === "";
+		if (aMissing !== (b === "")) return aMissing ? 1 : -1;
+		const order = typeof a === "number" && typeof b === "number" ? a - b : collator.compare(String(a), String(b));
+		if (order !== 0) return order * sign;
+		return left.key < right.key ? -1 : left.key > right.key ? 1 : left.bucket < right.bucket ? -1 : left.bucket > right.bucket ? 1 : 0;
+	});
+}
+/** Totals that count each stored copy once, however many rows use it. */
+function cacheAssetTotals(rows) {
+	const sizes = new Map(rows.map((row) => [row.key, row.bytes]));
+	let bytes = 0;
+	for (const size of sizes.values()) bytes += size;
+	return Object.freeze({
+		uses: rows.length,
+		entries: sizes.size,
+		bytes
+	});
+}
+/**
+* What releasing the selected uses would do, judged from the listing on screen. The Loader decides
+* for real and reports what it did; this is the estimate shown before asking.
+*/
+function estimateCacheRelease(all, selected) {
+	const chosen = all.filter((row) => selected.has(row.id));
+	const totals = cacheAssetTotals(chosen);
+	let freedBytes = 0;
+	let keptEntries = 0;
+	for (const key of new Set(chosen.map((row) => row.key))) {
+		const uses = all.filter((row) => row.key === key);
+		if (uses.every((row) => selected.has(row.id))) freedBytes += uses[0].bytes;
+		else keptEntries++;
+	}
+	return Object.freeze({
+		...totals,
+		freedBytes,
+		keptEntries
+	});
+}
+/** Drop selected ids that are no longer listed, so a stale selection never releases anything. */
+function pruneCacheSelection(rows, selected) {
+	const listed = new Set(rows.map((row) => row.id));
+	return new Set([...selected].filter((id) => listed.has(id)));
+}
+/** The claims a selection releases, in the shape the Loader takes. */
+function cacheClaimsFor(rows, selected) {
+	return rows.filter((row) => selected.has(row.id)).map((row) => ({
+		bucket: row.bucket,
+		key: row.key
+	}));
 }
 //#endregion
 //#region src/extension-cache.ts
@@ -1394,6 +1752,12 @@ function createExtensionCache(options = {}) {
 		totals() {
 			return requireCache().getSize();
 		},
+		async listAssets() {
+			return cacheAssetRows(await requireCache().listEntries(), options.titleFor);
+		},
+		releaseAssets(claims) {
+			return requireCache().releaseClaims(claims);
+		},
 		async close() {
 			const open = cache;
 			cache = null;
@@ -1405,31 +1769,31 @@ function createExtensionCache(options = {}) {
 //#region src/extension-cache-dialog.ts
 /** How much of a digest is shown. Enough to tell two rows apart; the full value is the title. */
 var digestPreviewLength = 12;
-function requireLocales(value) {
+function requireLocales$1(value) {
 	if (!isRecord(value) || Object.keys(value).length === 0) throw new TypeError("locales must contain at least one locale");
 	return value;
 }
-function textFor(locales, locale) {
+function textFor$1(locales, locale) {
 	const text = locales[locale] ?? locales["en"] ?? Object.values(locales)[0];
 	if (text === void 0) throw new TypeError("locales must contain at least one locale");
 	return text;
 }
 /** Fills `{name}` placeholders, so a locale decides where a count or a size sits in a sentence. */
-function fill(template, values) {
+function fill$1(template, values) {
 	return template.replace(/\{(\w+)\}/g, (match, name) => values[name] ?? match);
 }
-function defaultFormatSize(byteLength) {
+function defaultFormatSize$1(byteLength) {
 	if (byteLength < 1024) return `${byteLength} B`;
 	if (byteLength < 1048576) return `${(byteLength / 1024).toFixed(1)} KB`;
 	return `${(byteLength / 1048576).toFixed(1)} MB`;
 }
-function defaultFormatDate(epochMilliseconds) {
+function defaultFormatDate$1(epochMilliseconds) {
 	const parsed = new Date(epochMilliseconds);
 	if (Number.isNaN(parsed.getTime())) return String(epochMilliseconds);
 	const pad = (value) => String(value).padStart(2, "0");
 	return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
 }
-function defaultDescribeError(error) {
+function defaultDescribeError$1(error) {
 	if (error instanceof Error && error.message.length > 0) return error.message;
 	return String(error);
 }
@@ -1437,10 +1801,10 @@ function createExtensionCacheDialog(options) {
 	if (!isRecord(options)) throw new TypeError("extension cache dialog options must be an object");
 	const document = requireDocument(options.document ?? globalThis.document);
 	const mount = requireElement(options.mount ?? document.body, "mount");
-	const locales = requireLocales(options.locales);
-	const describeError = options.describeError ?? defaultDescribeError;
-	const formatSize = options.formatSize ?? defaultFormatSize;
-	const formatDate = options.formatDate ?? defaultFormatDate;
+	const locales = requireLocales$1(options.locales);
+	const describeError = options.describeError ?? defaultDescribeError$1;
+	const formatSize = options.formatSize ?? defaultFormatSize$1;
+	const formatDate = options.formatDate ?? defaultFormatDate$1;
 	let locale = options.initialLocale ?? "en";
 	let projects = [];
 	let totals = {
@@ -1529,7 +1893,7 @@ function createExtensionCacheDialog(options) {
 			status = "";
 			try {
 				const released = await operation();
-				result = fill(textFor(locales, locale).releaseResult, {
+				result = fill$1(textFor$1(locales, locale).releaseResult, {
 					released: String(released.released),
 					freed: formatSize(released.freed)
 				});
@@ -1587,11 +1951,11 @@ function createExtensionCacheDialog(options) {
 		key.setAttribute("title", digest.key);
 		key.style.cssText = "flex:1;min-width:0;font-family:monospace;font-size:12px;color:#1b1f27;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
 		const used = document.createElement("span");
-		used.textContent = fill(text.lastUsed, { date: formatDate(digest.lastAccess) });
+		used.textContent = fill$1(text.lastUsed, { date: formatDate(digest.lastAccess) });
 		used.style.cssText = "font-size:12px;color:#5a6172;white-space:nowrap;";
 		const size = document.createElement("span");
 		size.textContent = formatSize(digest.bytes);
-		size.setAttribute("title", fill(text.originalSize, { bytes: formatSize(digest.originalBytes) }));
+		size.setAttribute("title", fill$1(text.originalSize, { bytes: formatSize(digest.originalBytes) }));
 		size.style.cssText = "font-size:12px;color:#5a6172;white-space:nowrap;min-width:64px;text-align:right;";
 		row.appendChild(key);
 		row.appendChild(used);
@@ -1633,7 +1997,7 @@ function createExtensionCacheDialog(options) {
 		}
 		row.appendChild(names);
 		const count = document.createElement("span");
-		count.textContent = fill(text.entryCount, { entries: String(project.entries) });
+		count.textContent = fill$1(text.entryCount, { entries: String(project.entries) });
 		count.style.cssText = "font-size:12px;color:#5a6172;white-space:nowrap;";
 		const size = document.createElement("span");
 		size.textContent = formatSize(project.bytes);
@@ -1665,13 +2029,13 @@ function createExtensionCacheDialog(options) {
 	}
 	function render() {
 		if (disposed) return;
-		const text = textFor(locales, locale);
+		const text = textFor$1(locales, locale);
 		heading.textContent = text.title;
 		closeButton.textContent = text.close;
 		closeButton.setAttribute("aria-label", text.close);
 		refreshButton.textContent = text.refresh;
 		noticeElement.textContent = text.notice;
-		totalElement.textContent = fill(text.total, {
+		totalElement.textContent = fill$1(text.total, {
 			entries: String(totals.entries),
 			bytes: formatSize(totals.bytes)
 		});
@@ -1743,6 +2107,483 @@ function createExtensionCacheDialog(options) {
 		dispose() {
 			if (disposed) return;
 			disposed = true;
+			root.remove();
+			if (previousMountPosition === "" || previousMountPosition === "static") mount.style.position = previousMountPosition;
+		}
+	});
+}
+//#endregion
+//#region src/cache-manager-dialog.ts
+var rootAttribute = "data-turbowarp-title-menu-cache-manager";
+var kindKeys = [
+	"costume",
+	"backdrop",
+	"sound",
+	"document",
+	"extension",
+	"other",
+	"unknown"
+];
+var sortColumns = [
+	"name",
+	"kind",
+	"project",
+	"size",
+	"lastAccess"
+];
+/** Colors as variables, so one sheet serves both schemes and `auto` can follow the browser. */
+var styleSheet = `
+[${rootAttribute}]{--tm-bg:#fff;--tm-fg:#1b1f27;--tm-muted:#5a6172;--tm-line:#e2e6ee;--tm-soft:#f2f4f8;--tm-accent:#1f6feb;--tm-danger:#b42318;--tm-error:#8a1c1c;--tm-selected:#e8f0ff}
+[${rootAttribute}][data-color-scheme=dark]{--tm-bg:#1d2129;--tm-fg:#e6e9ef;--tm-muted:#a3abbd;--tm-line:#363c49;--tm-soft:#272c36;--tm-accent:#6ea8ff;--tm-danger:#f97066;--tm-error:#ffb4ab;--tm-selected:#23324d}
+@media (prefers-color-scheme: dark){[${rootAttribute}][data-color-scheme=auto]{--tm-bg:#1d2129;--tm-fg:#e6e9ef;--tm-muted:#a3abbd;--tm-line:#363c49;--tm-soft:#272c36;--tm-accent:#6ea8ff;--tm-danger:#f97066;--tm-error:#ffb4ab;--tm-selected:#23324d}}
+[${rootAttribute}] button,[${rootAttribute}] input,[${rootAttribute}] select{font:inherit;color:var(--tm-fg);background:var(--tm-soft);border:1px solid var(--tm-line);border-radius:6px;padding:4px 8px}
+[${rootAttribute}] button:focus-visible,[${rootAttribute}] input:focus-visible,[${rootAttribute}] select:focus-visible{outline:2px solid var(--tm-accent);outline-offset:1px}
+[${rootAttribute}] button[data-tone=danger]{background:var(--tm-danger);border-color:var(--tm-danger);color:#fff}
+[${rootAttribute}] button[disabled]{opacity:.5;cursor:default}
+[${rootAttribute}] table{width:100%;border-collapse:collapse;font-size:13px}
+[${rootAttribute}] th,[${rootAttribute}] td{padding:5px 6px;border-bottom:1px solid var(--tm-line);text-align:left;vertical-align:top}
+[${rootAttribute}] th button{border:none;background:none;padding:0;font-weight:600;cursor:pointer}
+[${rootAttribute}] tr[aria-selected=true]{background:var(--tm-selected)}
+[${rootAttribute}] .tm-muted{color:var(--tm-muted);font-size:12px}
+[${rootAttribute}] .tm-mono{font-family:monospace;font-size:11px;overflow-wrap:anywhere}
+`;
+function requireLocales(value) {
+	if (!isRecord(value) || Object.keys(value).length === 0) throw new TypeError("locales must contain at least one locale");
+	return value;
+}
+function textFor(locales, locale) {
+	const text = locales[locale] ?? locales["en"] ?? Object.values(locales)[0];
+	if (text === void 0) throw new TypeError("locales must contain at least one locale");
+	return text;
+}
+function fill(template, values) {
+	return template.replace(/\{(\w+)\}/g, (match, name) => values[name] ?? match);
+}
+function defaultFormatSize(byteLength) {
+	if (byteLength < 1024) return `${byteLength} B`;
+	if (byteLength < 1048576) return `${(byteLength / 1024).toFixed(1)} KB`;
+	return `${(byteLength / 1048576).toFixed(1)} MB`;
+}
+function defaultFormatDate(epochMilliseconds) {
+	const parsed = new Date(epochMilliseconds);
+	if (Number.isNaN(parsed.getTime())) return String(epochMilliseconds);
+	const pad = (value) => String(value).padStart(2, "0");
+	return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+}
+function defaultDescribeError(error) {
+	return error instanceof Error && error.message.length > 0 ? error.message : String(error);
+}
+function createCacheManagerDialog(options) {
+	if (!isRecord(options)) throw new TypeError("cache manager dialog options must be an object");
+	const document = requireDocument(options.document ?? globalThis.document);
+	const mount = requireElement(options.mount ?? document.body, "mount");
+	const locales = requireLocales(options.locales);
+	const describeError = options.describeError ?? defaultDescribeError;
+	const formatSize = options.formatSize ?? defaultFormatSize;
+	const formatDate = options.formatDate ?? defaultFormatDate;
+	let locale = options.initialLocale ?? "en";
+	let phase = "idle";
+	let rows = [];
+	let selected = /* @__PURE__ */ new Set();
+	let query = {
+		text: "",
+		sort: "lastAccess",
+		direction: "descending"
+	};
+	let confirming = false;
+	let busy = false;
+	let status = "";
+	let result = "";
+	let generation = 0;
+	let disposed = false;
+	const root = document.createElement("section");
+	root.setAttribute(rootAttribute, "true");
+	root.setAttribute("data-color-scheme", options.colorScheme ?? "auto");
+	root.setAttribute("role", "dialog");
+	root.setAttribute("aria-modal", "true");
+	root.style.cssText = "position:absolute;inset:0;z-index:2147483646;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;background:rgba(0,0,0,.6);font-family:sans-serif;";
+	root.style.display = "none";
+	const style = document.createElement("style");
+	style.textContent = styleSheet;
+	const panel = document.createElement("div");
+	panel.style.cssText = "width:min(980px,98%);max-height:92%;display:flex;flex-direction:column;gap:8px;padding:16px;box-sizing:border-box;background:var(--tm-bg);color:var(--tm-fg);border-radius:10px;box-shadow:0 10px 36px rgba(0,0,0,.45);overflow:hidden;";
+	const header = document.createElement("div");
+	header.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;";
+	const heading = document.createElement("h1");
+	heading.style.cssText = "margin:0;font-size:20px;";
+	heading.setAttribute("id", "tm-cache-manager-title");
+	root.setAttribute("aria-labelledby", "tm-cache-manager-title");
+	const closeButton = document.createElement("button");
+	closeButton.type = "button";
+	const notice = document.createElement("p");
+	notice.className = "tm-muted";
+	notice.style.cssText = "margin:0;line-height:1.5;";
+	const filters = document.createElement("div");
+	filters.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;align-items:center;";
+	const searchInput = document.createElement("input");
+	searchInput.type = "search";
+	searchInput.setAttribute("data-cache-search", "true");
+	const kindSelect = document.createElement("select");
+	kindSelect.setAttribute("data-cache-kind", "true");
+	const projectSelect = document.createElement("select");
+	projectSelect.setAttribute("data-cache-project", "true");
+	const refreshButton = document.createElement("button");
+	refreshButton.type = "button";
+	const summary = document.createElement("p");
+	summary.style.cssText = "margin:0;font-size:13px;";
+	summary.setAttribute("data-cache-summary", "true");
+	const selectionBar = document.createElement("div");
+	selectionBar.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;align-items:center;";
+	const tableBox = document.createElement("div");
+	tableBox.style.cssText = "flex:1;min-height:0;overflow:auto;";
+	const resultLine = document.createElement("p");
+	resultLine.setAttribute("role", "status");
+	resultLine.style.cssText = "margin:0;min-height:18px;font-size:13px;color:var(--tm-accent);";
+	const statusLine = document.createElement("p");
+	statusLine.setAttribute("role", "alert");
+	statusLine.style.cssText = "margin:0;min-height:18px;font-size:13px;color:var(--tm-error);";
+	header.append(heading, closeButton);
+	filters.append(searchInput, kindSelect, projectSelect, refreshButton);
+	panel.append(header, notice, filters, summary, selectionBar, tableBox, resultLine, statusLine);
+	root.append(style, panel);
+	const previousMountPosition = mount.style.position;
+	if (previousMountPosition === "" || previousMountPosition === "static") mount.style.position = "relative";
+	mount.appendChild(root);
+	function element(tag, text = "") {
+		const created = document.createElement(tag);
+		if (text) created.textContent = text;
+		return created;
+	}
+	function button(label, onClick, attributes = {}) {
+		const created = element("button", label);
+		created.type = "button";
+		created.disabled = busy;
+		for (const [name, value] of Object.entries(attributes)) created.setAttribute(name, value);
+		created.addEventListener("click", onClick);
+		return created;
+	}
+	function option(value, label, current) {
+		const created = element("option", label);
+		created.value = value;
+		created.setAttribute("value", value);
+		if (value === (current ?? "")) created.setAttribute("selected", "true");
+		return created;
+	}
+	function fail(error) {
+		status = describeError(error);
+		options.onError?.(error);
+		render();
+	}
+	const visible = () => queryCacheAssets(rows, {
+		text: query.text,
+		...query.kind ? { kind: query.kind } : {},
+		...query.bucket !== void 0 ? { bucket: query.bucket } : {},
+		sort: query.sort,
+		direction: query.direction
+	});
+	/**
+	* Lists again. Only the newest listing is shown, so a slow listing that finishes after a newer
+	* one cannot put old rows back. A failure is shown as a failure, never as an empty cache.
+	*/
+	async function reload() {
+		if (disposed) return;
+		const mine = ++generation;
+		phase = "loading";
+		confirming = false;
+		render();
+		try {
+			const listed = await options.listAssets();
+			if (mine !== generation || disposed) return;
+			rows = listed;
+			selected = pruneCacheSelection(rows, selected);
+			phase = "ready";
+		} catch (error) {
+			if (mine !== generation || disposed) return;
+			phase = "error";
+			rows = [];
+			selected = /* @__PURE__ */ new Set();
+			fail(error);
+			return;
+		}
+		render();
+	}
+	async function releaseSelected() {
+		const claims = cacheClaimsFor(rows, selected);
+		if (!claims.length) return;
+		busy = true;
+		confirming = false;
+		status = "";
+		render();
+		try {
+			const done = await options.onRelease(claims);
+			const text = textFor(locales, locale);
+			result = fill(text.releaseResult, {
+				released: String(done.released),
+				requested: String(claims.length),
+				freed: formatSize(done.freed)
+			});
+			if (done.released < claims.length) result += ` ${fill(text.releaseStale, { missing: String(claims.length - done.released) })}`;
+			selected = /* @__PURE__ */ new Set();
+		} catch (error) {
+			fail(error);
+		} finally {
+			busy = false;
+		}
+		await reload();
+	}
+	function setSort(column) {
+		query = query.sort === column ? {
+			...query,
+			direction: query.direction === "ascending" ? "descending" : "ascending"
+		} : {
+			...query,
+			sort: column,
+			direction: column === "size" || column === "lastAccess" ? "descending" : "ascending"
+		};
+		render();
+	}
+	function renderTable(text, shown) {
+		tableBox.replaceChildren();
+		if (phase === "loading" && rows.length === 0) {
+			tableBox.appendChild(element("p", text.loading));
+			return;
+		}
+		if (phase === "error" || phase === "idle") return;
+		if (rows.length === 0) {
+			tableBox.appendChild(element("p", text.empty));
+			return;
+		}
+		if (shown.length === 0) {
+			tableBox.appendChild(element("p", text.noMatches));
+			return;
+		}
+		const table = element("table");
+		const head = element("thead");
+		const headRow = element("tr");
+		const selectHeader = element("th", text.columns.select);
+		headRow.appendChild(selectHeader);
+		for (const column of sortColumns) {
+			const cell = element("th");
+			const sorted = query.sort === column;
+			cell.setAttribute("aria-sort", sorted ? query.direction : "none");
+			cell.appendChild(button(`${text.columns[column]}${sorted ? query.direction === "ascending" ? " ▲" : " ▼" : ""}`, () => setSort(column), { "data-cache-sort": column }));
+			headRow.appendChild(cell);
+		}
+		head.appendChild(headRow);
+		const body = element("tbody");
+		for (const row of shown) {
+			const tr = element("tr");
+			tr.setAttribute("data-cache-row", row.id);
+			tr.setAttribute("aria-selected", selected.has(row.id) ? "true" : "false");
+			const check = element("input");
+			check.type = "checkbox";
+			check.checked = selected.has(row.id);
+			check.disabled = busy;
+			check.setAttribute("data-cache-select", row.id);
+			check.setAttribute("aria-label", row.names[0] ?? row.key);
+			check.addEventListener("change", () => {
+				const next = new Set(selected);
+				if (next.has(row.id)) next.delete(row.id);
+				else next.add(row.id);
+				selected = next;
+				confirming = false;
+				render();
+			});
+			const checkCell = element("td");
+			checkCell.appendChild(check);
+			const nameCell = element("td");
+			nameCell.appendChild(element("div", row.names.length ? row.names.join(", ") : text.unnamed));
+			for (const url of row.urls) {
+				const line = element("div", url);
+				line.className = "tm-mono";
+				nameCell.appendChild(line);
+			}
+			if (row.urlRedacted) {
+				const line = element("div", text.redacted);
+				line.className = "tm-muted";
+				nameCell.appendChild(line);
+			}
+			const digest = element("div", fill(text.digest, { key: row.key }));
+			digest.className = "tm-mono tm-muted";
+			nameCell.appendChild(digest);
+			const kindCell = element("td", row.kinds.length ? row.kinds.map((kind) => text.kinds[kind]).join(", ") : text.kinds.unknown);
+			const projectCell = element("td");
+			projectCell.appendChild(element("div", row.shared ? text.shared : row.projectTitle ?? text.untitled));
+			if (!row.shared) {
+				const uri = element("div", row.bucket);
+				uri.className = "tm-mono tm-muted";
+				projectCell.appendChild(uri);
+			}
+			const sizeCell = element("td", formatSize(row.bytes));
+			if (row.uses > 1) {
+				const shared = element("div", fill(text.sharedBy, { uses: String(row.uses) }));
+				shared.className = "tm-muted";
+				sizeCell.appendChild(shared);
+			}
+			const dateCell = element("td", formatDate(row.lastAccess));
+			tr.append(checkCell, nameCell, kindCell, projectCell, sizeCell, dateCell);
+			body.appendChild(tr);
+		}
+		table.append(head, body);
+		tableBox.appendChild(table);
+	}
+	function renderFilters(text) {
+		searchInput.setAttribute("placeholder", text.search);
+		searchInput.setAttribute("aria-label", text.search);
+		kindSelect.setAttribute("aria-label", text.kindFilter);
+		kindSelect.replaceChildren(option("", text.kindAll, query.kind), ...kindKeys.map((kind) => option(kind, text.kinds[kind], query.kind)));
+		kindSelect.value = query.kind ?? "";
+		projectSelect.setAttribute("aria-label", text.projectFilter);
+		const buckets = [...new Map(rows.map((row) => [row.bucket, row])).values()].sort((a, b) => a.shared !== b.shared ? a.shared ? -1 : 1 : (a.projectTitle ?? a.bucket).localeCompare(b.projectTitle ?? b.bucket));
+		projectSelect.replaceChildren(option("", text.projectAll, query.bucket), ...buckets.map((row) => option(row.bucket, row.shared ? text.shared : row.projectTitle ?? row.bucket, query.bucket)));
+		projectSelect.value = query.bucket ?? "";
+	}
+	function render() {
+		if (disposed) return;
+		const text = textFor(locales, locale);
+		heading.textContent = text.title;
+		closeButton.textContent = text.close;
+		closeButton.setAttribute("aria-label", text.close);
+		refreshButton.textContent = text.refresh;
+		refreshButton.disabled = busy;
+		notice.textContent = text.notice;
+		renderFilters(text);
+		const shown = phase === "ready" || phase === "loading" ? visible() : [];
+		const totals = cacheAssetTotals(rows);
+		summary.textContent = phase === "ready" ? `${fill(text.total, {
+			entries: String(totals.entries),
+			bytes: formatSize(totals.bytes),
+			uses: String(totals.uses)
+		})} ${fill(text.shown, {
+			shown: String(shown.length),
+			uses: String(totals.uses)
+		})}` : phase === "loading" ? text.loading : "";
+		selectionBar.replaceChildren();
+		if (phase === "ready" && rows.length > 0) {
+			const shownIds = shown.map((row) => row.id);
+			selectionBar.append(button(fill(text.selectShown, { count: String(shownIds.length) }), () => {
+				selected = /* @__PURE__ */ new Set([...selected, ...shownIds]);
+				confirming = false;
+				render();
+			}, { "data-cache-select-shown": "true" }), button(fill(text.selectAll, { count: String(rows.length) }), () => {
+				selected = new Set(rows.map((row) => row.id));
+				confirming = false;
+				render();
+			}, { "data-cache-select-all": "true" }), button(text.clearSelection, () => {
+				selected = /* @__PURE__ */ new Set();
+				confirming = false;
+				render();
+			}, { "data-cache-clear": "true" }));
+			if (selected.size > 0) {
+				const estimate = estimateCacheRelease(rows, selected);
+				const line = element("span", fill(text.selection, {
+					uses: String(estimate.uses),
+					bytes: formatSize(estimate.freedBytes),
+					kept: String(estimate.keptEntries)
+				}));
+				line.setAttribute("data-cache-selection", "true");
+				selectionBar.appendChild(line);
+				if (confirming) selectionBar.append(button(fill(text.confirmRelease, { uses: String(estimate.uses) }), () => void releaseSelected(), {
+					"data-tone": "danger",
+					"data-cache-confirm": "true"
+				}), button(text.cancel, () => {
+					confirming = false;
+					render();
+				}));
+				else selectionBar.appendChild(button(text.release, () => {
+					confirming = true;
+					render();
+				}, { "data-cache-release": "true" }));
+			}
+		}
+		renderTable(text, shown);
+		resultLine.textContent = result;
+		statusLine.textContent = status;
+	}
+	searchInput.addEventListener("input", () => {
+		query = {
+			...query,
+			text: searchInput.value
+		};
+		render();
+	});
+	kindSelect.addEventListener("change", () => {
+		const value = kindSelect.value;
+		const rest = { ...query };
+		delete rest.kind;
+		query = value ? {
+			...rest,
+			kind: value
+		} : rest;
+		render();
+	});
+	projectSelect.addEventListener("change", () => {
+		const value = projectSelect.value;
+		const rest = { ...query };
+		delete rest.bucket;
+		query = value ? {
+			...rest,
+			bucket: value
+		} : rest;
+		render();
+	});
+	refreshButton.addEventListener("click", () => {
+		result = "";
+		status = "";
+		reload();
+	});
+	closeButton.addEventListener("click", () => hide());
+	root.addEventListener("keydown", (event) => {
+		if (event.key === "Escape") hide();
+	});
+	function hide() {
+		if (disposed) return;
+		confirming = false;
+		root.style.display = "none";
+	}
+	function ensureActive() {
+		if (disposed) throw new TypeError("cache manager dialog is disposed");
+	}
+	render();
+	return Object.freeze({
+		element: root,
+		get locale() {
+			return locale;
+		},
+		get phase() {
+			return phase;
+		},
+		get selected() {
+			return new Set(selected);
+		},
+		async show(nextLocale) {
+			ensureActive();
+			if (nextLocale !== void 0) locale = nextLocale;
+			status = "";
+			result = "";
+			root.style.display = "flex";
+			await reload();
+			return locale;
+		},
+		hide,
+		async refresh() {
+			ensureActive();
+			await reload();
+		},
+		setLocale(nextLocale) {
+			ensureActive();
+			locale = nextLocale;
+			render();
+			return locale;
+		},
+		setColorScheme(scheme) {
+			ensureActive();
+			root.setAttribute("data-color-scheme", scheme);
+		},
+		dispose() {
+			if (disposed) return;
+			disposed = true;
+			generation++;
 			root.remove();
 			if (previousMountPosition === "" || previousMountPosition === "static") mount.style.position = previousMountPosition;
 		}
@@ -1982,7 +2823,7 @@ var block_definitions_default = {
 			"opcode": "showExtensionCache",
 			"blockType": "COMMAND",
 			"text": "show extension cache manager",
-			"description": "Shows the dialog that lists the cached extension bytes per project and releases them."
+			"description": "Shows the cache manager, which lists every cached copy each project uses and releases the ones selected."
 		},
 		{
 			"opcode": "setCachedProjectTitle",
@@ -2068,18 +2909,7 @@ var dslFilesLocales = Object.freeze({
 		empty: "保存されたDSLファイルはありません。「ファイルを追加」から保存してください。"
 	}
 });
-/**
-* Wording for the extension cache screen.
-*
-* The notice is the load-bearing part, and it says three things on purpose. Releasing is phrased
-* as letting go of what a project *names*, never as deleting what it owns, because the cache is
-* addressed by content and one copy can be claimed by several projects. It states that nothing is
-* lost for good, so that an operator freeing space is not frightened into leaving it alone. And it
-* states that a project URI is self-declared, the same admission the DSL dialog and the security
-* dialog make about an author's name — the Loader re-checks every digest on use, so a project
-* that files its bytes under somebody else's URI corrupts this list and nothing else.
-*/
-var extensionCacheLocales = Object.freeze({
+Object.freeze({
 	en: {
 		title: "Extension cache",
 		notice: "Cached entries are addressed by their contents, not owned by a project. Releasing a project drops the digests that project names, which can take bytes another project would have reused. Nothing is lost for good: whatever is still needed is downloaded again the next time a project is opened. Each URI below is what that project called itself and is not verified; the loader re-checks every digest when it uses it, so a wrong URI only misleads this list.",
@@ -2117,6 +2947,105 @@ var extensionCacheLocales = Object.freeze({
 		releaseResult: "{released}件を手放し、{freed}を空けました。",
 		lastUsed: "最終利用 {date}",
 		originalSize: "JavaScript {bytes}"
+	}
+});
+/** Text for the cache manager table. */
+var cacheManagerLocales = Object.freeze({
+	en: {
+		title: "Cache manager",
+		notice: "Each row is one project's use of one cached copy. Releasing a use only removes it from this browser's cache; the project still refers to the same address and downloads it again the next time it is opened, so it may not work offline until then. A copy another project still uses stays. Names, addresses and project titles are what the projects recorded and are not verified; the loader checks every copy by its SHA-256 before using it.",
+		search: "Search names, addresses, projects or digests",
+		kindFilter: "Kind",
+		kindAll: "All kinds",
+		kinds: {
+			costume: "Costume",
+			backdrop: "Backdrop",
+			sound: "Sound",
+			document: "Document",
+			extension: "Extension",
+			other: "Other",
+			unknown: "Unknown"
+		},
+		projectFilter: "Project",
+		projectAll: "All projects",
+		shared: "Shared by every project",
+		untitled: "(no title recorded)",
+		unnamed: "(no name recorded)",
+		columns: {
+			select: "Select",
+			name: "Name",
+			kind: "Kind",
+			project: "Project",
+			size: "Size",
+			lastAccess: "Last used"
+		},
+		total: "{entries} cached copies, {bytes} ({uses} uses).",
+		shown: "Showing {shown} of {uses}.",
+		selectShown: "Select shown ({count})",
+		selectAll: "Select all in the cache ({count})",
+		clearSelection: "Clear selection",
+		selection: "{uses} selected. Frees about {bytes}; {kept} copies stay because another project uses them.",
+		release: "Release selected",
+		confirmRelease: "Release {uses}?",
+		cancel: "Cancel",
+		close: "Close",
+		refresh: "Reload",
+		loading: "Reading the cache…",
+		empty: "Nothing is cached. Opening a project that uses remote data fills this.",
+		noMatches: "Nothing matches the search.",
+		releaseResult: "Released {released} of {requested} and freed {freed}.",
+		releaseStale: "{missing} had already been released elsewhere.",
+		sharedBy: "used by {uses} projects",
+		redacted: "Address shortened: credentials or a query were removed",
+		digest: "SHA-256 {key}"
+	},
+	ja: {
+		title: "キャッシュ管理",
+		notice: "1行は、1つの作品がキャッシュの1つの実体を使っていることを表します。手放すと、このブラウザーのキャッシュから外れるだけです。作品は同じ URL を参照し続け、次に開いたときに取得し直すので、それまではオフラインで使えないことがあります。別の作品が使っている実体は残ります。名前・URL・作品名は作品が記録したもので、検証していません。Loader は使う前に SHA-256 で照合します。",
+		search: "名前・URL・作品・digest で検索",
+		kindFilter: "種類",
+		kindAll: "すべての種類",
+		kinds: {
+			costume: "コスチューム",
+			backdrop: "背景",
+			sound: "音",
+			document: "文書",
+			extension: "機能拡張",
+			other: "その他",
+			unknown: "不明"
+		},
+		projectFilter: "作品",
+		projectAll: "すべての作品",
+		shared: "すべての作品で共有",
+		untitled: "（作品名の記録なし）",
+		unnamed: "（名前の記録なし）",
+		columns: {
+			select: "選択",
+			name: "名前",
+			kind: "種類",
+			project: "作品",
+			size: "容量",
+			lastAccess: "最終利用"
+		},
+		total: "キャッシュの実体 {entries}件、{bytes}（利用 {uses}件）。",
+		shown: "{uses}件中 {shown}件を表示。",
+		selectShown: "表示中を選択（{count}件）",
+		selectAll: "キャッシュ全体を選択（{count}件）",
+		clearSelection: "選択を解除",
+		selection: "{uses}件を選択中。約 {bytes} 空きます。{kept}件の実体は別の作品が使っているので残ります。",
+		release: "選択を手放す",
+		confirmRelease: "{uses}件を手放す?",
+		cancel: "やめる",
+		close: "閉じる",
+		refresh: "読み直す",
+		loading: "キャッシュを読んでいます…",
+		empty: "キャッシュは空です。リモートのデータを使う作品を開くと入ります。",
+		noMatches: "検索に合うものはありません。",
+		releaseResult: "{requested}件中 {released}件を手放し、{freed} 空けました。",
+		releaseStale: "{missing}件は別の場所で既に手放されていました。",
+		sharedBy: "{uses}作品が利用",
+		redacted: "URL を短縮しました（資格情報やクエリを除去）",
+		digest: "SHA-256 {key}"
 	}
 });
 var cacheErrorMessages = Object.freeze({
@@ -2465,16 +3394,13 @@ var TurboWarpTitleMenuExtension = class {
 	ensureCacheDialog() {
 		if (this.cacheDialog) return this.cacheDialog;
 		const mount = stageMount();
-		this.cacheDialog = createExtensionCacheDialog({
+		this.cacheDialog = createCacheManagerDialog({
 			document: globalThis.document,
 			...mount ? { mount } : {},
-			locales: extensionCacheLocales,
+			locales: cacheManagerLocales,
 			initialLocale: this.locale(),
-			listProjects: () => this.requireCache().listProjects(),
-			listDigests: (bucket) => this.requireCache().listDigests(bucket),
-			totals: () => this.requireCache().totals(),
-			onReleaseProject: (bucket) => this.requireCache().releaseProject(bucket),
-			onReleaseDigest: (bucket, key) => this.requireCache().releaseDigests(bucket, [key]),
+			listAssets: () => this.requireCache().listAssets(),
+			onRelease: (claims) => this.requireCache().releaseAssets(claims),
 			describeError: (error) => describeCacheError(this.locale(), error),
 			onError: (error) => {
 				this.lastError = describeCacheError(this.locale(), error);
@@ -2536,6 +3462,7 @@ var publicApi = Object.freeze({
 	createApplicationMenu: createAppShellApplicationMenu,
 	createDslFilesDialog,
 	createDslStore,
+	createCacheManagerDialog,
 	createExtensionCache,
 	createExtensionCacheDialog,
 	createTitleDialog,

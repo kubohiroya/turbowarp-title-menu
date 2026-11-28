@@ -1,4 +1,5 @@
 import { createIndexedDBContentCache, SHARED_BUCKET } from '@kubohiroya/turbowarp-extension-loader/indexeddb-cache';
+import { cacheAssetRows } from './cache-asset-model.js';
 export class ExtensionCacheError extends Error {
     constructor(code, message, cause) {
         super(message, cause === undefined ? undefined : { cause });
@@ -80,6 +81,12 @@ export function createExtensionCache(options = {}) {
         },
         totals() {
             return requireCache().getSize();
+        },
+        async listAssets() {
+            return cacheAssetRows(await requireCache().listEntries(), options.titleFor);
+        },
+        releaseAssets(claims) {
+            return requireCache().releaseClaims(claims);
         },
         async close() {
             const open = cache;
