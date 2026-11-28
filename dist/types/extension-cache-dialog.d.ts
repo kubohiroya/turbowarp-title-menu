@@ -1,4 +1,4 @@
-import type { CachedDigestSummary, CachedProjectSummary, CacheReleaseResult, ExtensionCacheTotals } from './extension-cache';
+import type { CachedDigestSummary, CachedProjectSummary, CacheReleaseResult, ExtensionCacheTotals } from './extension-cache.js';
 /**
  * The stage-mounted manager for cached extension bytes.
  *

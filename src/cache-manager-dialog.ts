@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-import {isRecord, requireDocument, requireElement} from './dom';
+import {isRecord, requireDocument, requireElement} from './dom.js';
 import {
   cacheAssetTotals,
   cacheClaimsFor,
@@ -10,8 +10,8 @@ import {
   type CacheAssetRow,
   type CacheAssetSortColumn,
   type CacheAssetSortDirection
-} from './cache-asset-model';
-import type {CacheReleaseResult} from './extension-cache';
+} from './cache-asset-model.js';
+import type {CacheReleaseResult} from './extension-cache.js';
 
 /**
  * The cache manager: a table of every use of every cached copy, with search, filters, sorting,

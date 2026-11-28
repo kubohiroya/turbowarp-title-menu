@@ -1,5 +1,5 @@
-import {isRecord, requireDocument, requireElement} from './dom';
-import {defaultDslSort, type DslFileSummary, type DslSort, type DslSortField} from './dsl-store';
+import {isRecord, requireDocument, requireElement} from './dom.js';
+import {defaultDslSort, type DslFileSummary, type DslSort, type DslSortField} from './dsl-store.js';
 
 /**
  * The stage-mounted DSL file manager.

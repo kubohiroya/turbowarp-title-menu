@@ -1,9 +1,9 @@
-import type {DslFilesDialogLocaleText} from './dsl-files-dialog';
-import type {DslStoreErrorCode} from './dsl-store';
-import type {ExtensionCacheErrorCode} from './extension-cache';
-import type {ExtensionCacheDialogLocaleText} from './extension-cache-dialog';
-import type {CacheManagerLocaleText} from './cache-manager-dialog';
-import type {TitleDialogLocaleText} from './title-dialog';
+import type {DslFilesDialogLocaleText} from './dsl-files-dialog.js';
+import type {DslStoreErrorCode} from './dsl-store.js';
+import type {ExtensionCacheErrorCode} from './extension-cache.js';
+import type {ExtensionCacheDialogLocaleText} from './extension-cache-dialog.js';
+import type {CacheManagerLocaleText} from './cache-manager-dialog.js';
+import type {TitleDialogLocaleText} from './title-dialog.js';
 
 export type SupportedLocale = 'en' | 'ja';
 

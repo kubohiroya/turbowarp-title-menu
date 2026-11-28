@@ -1,4 +1,4 @@
-import { isRecord, requireDocument, requireElement } from './dom';
+import { isRecord, requireDocument, requireElement } from './dom.js';
 /** How much of a digest is shown. Enough to tell two rows apart; the full value is the title. */
 const digestPreviewLength = 12;
 function requireLocales(value) {

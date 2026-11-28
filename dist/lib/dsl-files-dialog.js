@@ -1,5 +1,5 @@
-import { isRecord, requireDocument, requireElement } from './dom';
-import { defaultDslSort } from './dsl-store';
+import { isRecord, requireDocument, requireElement } from './dom.js';
+import { defaultDslSort } from './dsl-store.js';
 const defaultSortDirections = Object.freeze({
     name: 'asc',
     updatedAt: 'desc',

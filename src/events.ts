@@ -1,4 +1,4 @@
-import type {DslFileRecord} from './dsl-store';
+import type {DslFileRecord} from './dsl-store.js';
 
 export const dslOpenEventName = 'turbowarp-title-menu:dsl-open';
 export const dslReloadEventName = 'turbowarp-title-menu:dsl-reload';

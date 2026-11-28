@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
-import { isRecord, requireDocument, requireElement } from './dom';
-import { cacheAssetTotals, cacheClaimsFor, estimateCacheRelease, pruneCacheSelection, queryCacheAssets } from './cache-asset-model';
+import { isRecord, requireDocument, requireElement } from './dom.js';
+import { cacheAssetTotals, cacheClaimsFor, estimateCacheRelease, pruneCacheSelection, queryCacheAssets } from './cache-asset-model.js';
 const rootAttribute = 'data-turbowarp-title-menu-cache-manager';
 const kindKeys = ['costume', 'backdrop', 'sound', 'document', 'extension', 'other', 'unknown'];
 const sortColumns = ['name', 'kind', 'project', 'size', 'lastAccess'];

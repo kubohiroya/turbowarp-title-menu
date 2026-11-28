@@ -1,4 +1,4 @@
-import { ensureRelativeMount, invokeSafely, requireDocument, requireElement } from './dom';
+import { ensureRelativeMount, invokeSafely, requireDocument, requireElement } from './dom.js';
 function requireLocaleText(locales, locale) {
     const text = locales[locale] ?? locales.en ?? Object.values(locales)[0];
     if (!text)
