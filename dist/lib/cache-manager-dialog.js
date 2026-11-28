@@ -70,6 +70,7 @@ export function createCacheManagerDialog(options) {
         direction: 'descending'
     };
     let confirming = false;
+    let embedFormat = 'embedded-file';
     let busy = false;
     let status = '';
     let result = '';
@@ -224,6 +225,86 @@ export function createCacheManagerDialog(options) {
             busy = false;
         }
         await reload();
+    }
+    /** Selected rows filed under the open project, and how many selected rows are not. */
+    function embeddable() {
+        const bucket = options.embedding?.currentBucket();
+        const chosen = rows.filter((row) => selected.has(row.id));
+        const mine = bucket === undefined ? [] : chosen.filter((row) => row.bucket === bucket);
+        return { keys: [...new Set(mine.map((row) => row.key))], uses: mine.length, others: chosen.length - mine.length };
+    }
+    async function embedSelected(release) {
+        const embedding = options.embedding;
+        const { keys } = embeddable();
+        if (!embedding || !keys.length)
+            return;
+        busy = true;
+        confirming = false;
+        status = '';
+        render();
+        try {
+            const done = await embedding.embed(keys, { format: embedFormat, release });
+            const text = textFor(locales, locale);
+            result = fill(text.embedResult, { embedded: String(done.embedded), requested: String(keys.length) });
+            if (done.skipped.length) {
+                const reasons = [...new Set(done.skipped.map((skip) => text.embedSkipReasons[skip.reason] ?? skip.reason))].join(', ');
+                result += ` ${fill(text.embedSkipped, { count: String(done.skipped.length), reasons })}`;
+            }
+            if (done.released) {
+                result += ` ${text.embedReleasePending}`;
+                void done.released.then(async (outcome) => {
+                    if (disposed)
+                        return;
+                    const later = textFor(locales, locale);
+                    result = fill(later.embedReleaseResult, {
+                        released: String(outcome.released),
+                        freed: formatSize(outcome.freed),
+                        kept: String(outcome.kept)
+                    });
+                    await reload();
+                }, (error) => {
+                    if (!disposed)
+                        fail(error);
+                });
+            }
+            selected = new Set();
+        }
+        catch (error) {
+            fail(error);
+        }
+        finally {
+            busy = false;
+        }
+        await reload();
+    }
+    function renderEmbedding(text) {
+        if (!options.embedding)
+            return;
+        const { uses, others } = embeddable();
+        if (uses > 0) {
+            const select = element('select');
+            select.setAttribute('data-cache-embed-format', 'true');
+            select.setAttribute('aria-label', text.embedFormat);
+            select.disabled = busy;
+            for (const format of ['embedded-file', 'embedded-data'])
+                select.appendChild(option(format, text.embedFormats[format], embedFormat));
+            select.value = embedFormat;
+            select.addEventListener('change', () => {
+                embedFormat = select.value === 'embedded-data' ? 'embedded-data' : 'embedded-file';
+            });
+            selectionBar.append(select, button(fill(text.embed, { uses: String(uses) }), () => void embedSelected(false), { 'data-cache-embed': 'true' }), button(fill(text.embedAndRelease, { uses: String(uses) }), () => void embedSelected(true), { 'data-cache-embed-release': 'true' }));
+        }
+        if (others > 0) {
+            const line = element('span', fill(text.embedOtherProjects, { uses: String(others) }));
+            line.className = 'tm-muted';
+            line.setAttribute('data-cache-embed-others', 'true');
+            selectionBar.appendChild(line);
+        }
+        if (uses > 0) {
+            const line = element('span', text.embedNotice);
+            line.className = 'tm-muted';
+            selectionBar.appendChild(line);
+        }
     }
     function setSort(column) {
         query =
@@ -388,6 +469,7 @@ export function createCacheManagerDialog(options) {
                         render();
                     }, { 'data-cache-release': 'true' }));
                 }
+                renderEmbedding(text);
             }
         }
         renderTable(text, shown);

@@ -23,7 +23,7 @@ TurboWarp拡張やPackager実行環境で使える、汎用のタイトル表示
 - 起動直後のタイトル表示として、タイトル、作者名、ライセンス、公式Webサイト、閉じるボタンを表示します。
 - ステージ上にアプリケーションメニューを表示します。共有primitiveの`@kubohiroya/turbowarp-app-shell`の上に作っており、項目はblockから定義してhatで受けられるため、固定の項目に縛られません。
 - DSLファイル管理ダイアログで、追加、開く、名前の変更、個別削除ができ、名前・更新日時・サイズで並べ替えできます。
-- 機能拡張キャッシュ管理ダイアログで、Loaderがキャッシュした機能拡張のバイト列を、作品ごと・カタログ共有ごとに一覧して手放せます。
+- 機能拡張キャッシュ管理ダイアログで、Loaderがキャッシュした機能拡張のバイト列を、作品ごと・カタログ共有ごとに一覧して手放せます。作品を開いているホストは `embedding` を渡すと、その作品の行の選択を作品へ埋め込む操作と、ホストが保存を確かめた後に手放す操作を出せます。どの参照を変えるかはホストが決め、ダイアログはその作品の行の digest を渡すだけです。
 - 複数のDSLファイルをIndexedDBに保管します。TM Kamishibai専用ではありません。
 - ホスト側ランタイムから直接組み込める Composition API を提供します。
 
@@ -44,7 +44,7 @@ IndexedDBはoriginごとに分かれます。TurboWarp Web、TurboWarp Desktop�
 ## インストール
 
 ```bash
-pnpm add --save-exact @kubohiroya/turbowarp-title-menu@0.9.1
+pnpm add --save-exact @kubohiroya/turbowarp-title-menu@0.10.0
 ```
 
 TurboWarpでは `dist/turbowarp-title-menu.js` をCustom Extensionとして読み込み、sandboxなしの実行を許可します。

@@ -52,6 +52,56 @@ export interface CacheManagerLocaleText {
     redacted: string;
     /** `{key}` is substituted. */
     digest: string;
+    /** What embedding does: it changes the open project, unsaved, and keeps the address. */
+    embedNotice: string;
+    embedFormat: string;
+    embedFormats: Record<CacheEmbedFormat, string>;
+    /** `{uses}` is substituted: selected uses of the project open in the host. */
+    embed: string;
+    /** `{uses}` is substituted. */
+    embedAndRelease: string;
+    /** `{uses}` is substituted: selected uses that belong to other projects. */
+    embedOtherProjects: string;
+    /** `{embedded}` and `{requested}` are substituted. */
+    embedResult: string;
+    /** `{count}` and `{reasons}` are substituted. */
+    embedSkipped: string;
+    embedSkipReasons: Record<CacheEmbedSkipReason, string>;
+    /** Shown while the release waits for the project to be saved. */
+    embedReleasePending: string;
+    /** `{released}`, `{freed}` and `{kept}` are substituted. */
+    embedReleaseResult: string;
+}
+export type CacheEmbedFormat = 'embedded-data' | 'embedded-file';
+export type CacheEmbedSkipReason = 'not-in-project' | 'changed' | 'unsupported';
+/** What the host reports after embedding selected copies into its open project. */
+export interface CacheEmbedOutcome {
+    readonly embedded: number;
+    readonly skipped: readonly {
+        readonly key: string;
+        readonly reason: CacheEmbedSkipReason;
+    }[];
+    /**
+     * Present when a release was asked for: it settles once the host saw the project saved and
+     * released that project's claims, with how many it kept (other projects and the shared area
+     * always stay). It never settles if the project is not saved.
+     */
+    readonly released?: Promise<CacheReleaseResult & {
+        readonly kept: number;
+    }>;
+}
+/**
+ * Embedding into the project the host has open. The dialog never decides which references
+ * change: it passes digests of rows filed under the open project, and the host embeds only what
+ * that project pins with the same digest, reporting the rest.
+ */
+export interface CacheEmbeddingHost {
+    /** The bucket the open project's rows are filed under, or undefined when it has none. */
+    currentBucket(): string | undefined;
+    embed(keys: readonly string[], options: {
+        format: CacheEmbedFormat;
+        release: boolean;
+    }): Promise<CacheEmbedOutcome>;
 }
 export interface CacheManagerDialogOptions {
     document?: Document;
@@ -63,6 +113,8 @@ export interface CacheManagerDialogOptions {
         bucket: string;
         key: string;
     }[]): CacheReleaseResult | Promise<CacheReleaseResult>;
+    /** Offered only when the host has an open project to embed into. */
+    embedding?: CacheEmbeddingHost;
     /** `auto` follows the browser; a host with its own theme passes `light` or `dark`. */
     colorScheme?: 'light' | 'dark' | 'auto';
     describeError?(error: unknown): string;

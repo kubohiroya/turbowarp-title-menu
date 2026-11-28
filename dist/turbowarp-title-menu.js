@@ -2191,6 +2191,7 @@ function createCacheManagerDialog(options) {
 		direction: "descending"
 	};
 	let confirming = false;
+	let embedFormat = "embedded-file";
 	let busy = false;
 	let status = "";
 	let result = "";
@@ -2330,6 +2331,91 @@ function createCacheManagerDialog(options) {
 			busy = false;
 		}
 		await reload();
+	}
+	/** Selected rows filed under the open project, and how many selected rows are not. */
+	function embeddable() {
+		const bucket = options.embedding?.currentBucket();
+		const chosen = rows.filter((row) => selected.has(row.id));
+		const mine = bucket === void 0 ? [] : chosen.filter((row) => row.bucket === bucket);
+		return {
+			keys: [...new Set(mine.map((row) => row.key))],
+			uses: mine.length,
+			others: chosen.length - mine.length
+		};
+	}
+	async function embedSelected(release) {
+		const embedding = options.embedding;
+		const { keys } = embeddable();
+		if (!embedding || !keys.length) return;
+		busy = true;
+		confirming = false;
+		status = "";
+		render();
+		try {
+			const done = await embedding.embed(keys, {
+				format: embedFormat,
+				release
+			});
+			const text = textFor(locales, locale);
+			result = fill(text.embedResult, {
+				embedded: String(done.embedded),
+				requested: String(keys.length)
+			});
+			if (done.skipped.length) {
+				const reasons = [...new Set(done.skipped.map((skip) => text.embedSkipReasons[skip.reason] ?? skip.reason))].join(", ");
+				result += ` ${fill(text.embedSkipped, {
+					count: String(done.skipped.length),
+					reasons
+				})}`;
+			}
+			if (done.released) {
+				result += ` ${text.embedReleasePending}`;
+				done.released.then(async (outcome) => {
+					if (disposed) return;
+					result = fill(textFor(locales, locale).embedReleaseResult, {
+						released: String(outcome.released),
+						freed: formatSize(outcome.freed),
+						kept: String(outcome.kept)
+					});
+					await reload();
+				}, (error) => {
+					if (!disposed) fail(error);
+				});
+			}
+			selected = /* @__PURE__ */ new Set();
+		} catch (error) {
+			fail(error);
+		} finally {
+			busy = false;
+		}
+		await reload();
+	}
+	function renderEmbedding(text) {
+		if (!options.embedding) return;
+		const { uses, others } = embeddable();
+		if (uses > 0) {
+			const select = element("select");
+			select.setAttribute("data-cache-embed-format", "true");
+			select.setAttribute("aria-label", text.embedFormat);
+			select.disabled = busy;
+			for (const format of ["embedded-file", "embedded-data"]) select.appendChild(option(format, text.embedFormats[format], embedFormat));
+			select.value = embedFormat;
+			select.addEventListener("change", () => {
+				embedFormat = select.value === "embedded-data" ? "embedded-data" : "embedded-file";
+			});
+			selectionBar.append(select, button(fill(text.embed, { uses: String(uses) }), () => void embedSelected(false), { "data-cache-embed": "true" }), button(fill(text.embedAndRelease, { uses: String(uses) }), () => void embedSelected(true), { "data-cache-embed-release": "true" }));
+		}
+		if (others > 0) {
+			const line = element("span", fill(text.embedOtherProjects, { uses: String(others) }));
+			line.className = "tm-muted";
+			line.setAttribute("data-cache-embed-others", "true");
+			selectionBar.appendChild(line);
+		}
+		if (uses > 0) {
+			const line = element("span", text.embedNotice);
+			line.className = "tm-muted";
+			selectionBar.appendChild(line);
+		}
 	}
 	function setSort(column) {
 		query = query.sort === column ? {
@@ -2494,6 +2580,7 @@ function createCacheManagerDialog(options) {
 					confirming = true;
 					render();
 				}, { "data-cache-release": "true" }));
+				renderEmbedding(text);
 			}
 		}
 		renderTable(text, shown);
@@ -2997,7 +3084,25 @@ var cacheManagerLocales = Object.freeze({
 		releaseStale: "{missing} had already been released elsewhere.",
 		sharedBy: "used by {uses} projects",
 		redacted: "Address shortened: credentials or a query were removed",
-		digest: "SHA-256 {key}"
+		digest: "SHA-256 {key}",
+		embedNotice: "Embedding puts the data into the open project, unsaved, and keeps its address so it can be referenced remotely again. The project grows by that much. Its cached copy is released only after the project is saved.",
+		embedFormat: "Embed as",
+		embedFormats: {
+			"embedded-file": "A file in the SB3",
+			"embedded-data": "Data in project.json"
+		},
+		embed: "Embed {uses} in this project",
+		embedAndRelease: "Embed {uses} and release after saving",
+		embedOtherProjects: "{uses} selected belong to other projects. Open a project to embed its data.",
+		embedResult: "Embedded {embedded} of {requested} into the open project. Save it to keep the change.",
+		embedSkipped: "{count} could not be embedded: {reasons}.",
+		embedSkipReasons: {
+			"not-in-project": "the open project does not refer to it with this digest",
+			changed: "the project data no longer matches the digest",
+			unsupported: "its owner cannot embed it"
+		},
+		embedReleasePending: "Its cached copies are released once the project is saved.",
+		embedReleaseResult: "The project was saved: released {released} and freed {freed}. {kept} were kept."
 	},
 	ja: {
 		title: "キャッシュ管理",
@@ -3045,7 +3150,25 @@ var cacheManagerLocales = Object.freeze({
 		releaseStale: "{missing}件は別の場所で既に手放されていました。",
 		sharedBy: "{uses}作品が利用",
 		redacted: "URL を短縮しました（資格情報やクエリを除去）",
-		digest: "SHA-256 {key}"
+		digest: "SHA-256 {key}",
+		embedNotice: "埋め込むと、開いている作品にデータを入れます（未保存）。URL は残すので、あとで同じ内容をリモート参照に戻せます。作品はその分大きくなります。キャッシュの実体は作品を保存してから手放します。",
+		embedFormat: "埋め込み方",
+		embedFormats: {
+			"embedded-file": "SB3 内のファイル",
+			"embedded-data": "project.json 内のデータ"
+		},
+		embed: "{uses}件をこの作品に埋め込む",
+		embedAndRelease: "{uses}件を埋め込み、保存後に手放す",
+		embedOtherProjects: "選択のうち{uses}件は別の作品のものです。埋め込むにはその作品を開いてください。",
+		embedResult: "{requested}件中 {embedded}件を開いている作品に埋め込みました。保存すると確定します。",
+		embedSkipped: "{count}件は埋め込めませんでした（{reasons}）。",
+		embedSkipReasons: {
+			"not-in-project": "開いている作品がこの digest で参照していない",
+			changed: "作品のデータが digest と一致しない",
+			unsupported: "所有者が埋め込みに対応していない"
+		},
+		embedReleasePending: "作品を保存すると、キャッシュの実体を手放します。",
+		embedReleaseResult: "作品を保存しました。{released}件を手放し、{freed} 空けました。{kept}件は残しました。"
 	}
 });
 var cacheErrorMessages = Object.freeze({
