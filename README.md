@@ -21,7 +21,7 @@ In the official TurboWarp Editor, enable **Run extension without sandbox** and c
 - Shows a reusable title dialog with title, author, license, official website, language, and close controls.
 - Shows a stage-mounted application menu built on the shared `@kubohiroya/turbowarp-app-shell` primitive. A project defines its own actions from blocks and reacts to them with a hat, so the menu is not limited to a fixed set.
 - Shows a DSL file manager that adds, opens, renames, and deletes stored files, and sorts them by name, update time, or size.
-- Shows an extension cache manager that lists the extension bytes the loader cached, per project and for the shared catalog, and releases them.
+- Shows a cache manager: a table of every cached copy each project uses, with the name, kind, address and project the project recorded, search, kind and project filters, sorting by any column, and release of selected uses, of everything shown, or of the whole cache. It counts a copy several projects share once, and says what a release will free before asking and what it freed after. `createCacheManagerDialog`, the model functions and `cacheManagerLocales` are exported from `./composition` for hosts such as the Editor; `createExtensionCacheDialog`, the earlier per-project view, is deprecated.
 - Stores many DSL files in IndexedDB without tying the mechanism to TM Kamishibai.
 - Exposes a small Composition API for projects that want to wire the controls into their own runtime.
 
@@ -238,7 +238,7 @@ Returns the most recent DSL storage failure in the interface language, or an emp
 
 ### `show extension cache manager`
 
-Shows the dialog that lists the cached extension bytes per project and releases them.
+Shows the cache manager, which lists every cached copy each project uses and releases the ones selected.
 
 | Property | Value |
 |---|---|
@@ -272,7 +272,7 @@ Records a readable title to show beside a project URI in the extension cache man
 | Deleting | Deleting asks for a second confirming click, and deleting the open file clears the opened source. |
 | Storage limits | A file over 1 MiB, or a 65th file, is refused with a message. The store never evicts a file on its own. |
 | Storage failures | Every failure is shown in the dialog and reported by `last DSL storage error`; a script is never interrupted by a thrown storage error. |
-| Releasing a cached project | Cached entries are addressed by their contents, so a project claims entries rather than owning them. Releasing a project drops the digests that project names, which can take bytes another project would have reused. Nothing is lost for good: whatever is still needed is downloaded again the next time a project is opened. |
+| Releasing cached uses | Cached entries are addressed by their contents, so a project claims entries rather than owning them. Releasing a use drops that project's claim; the copy goes only when no other project still claims it. Releasing changes nothing in the project: it still refers to the same address and downloads the copy again the next time it is opened, so it may not work offline until then. A use another tab already released counts as nothing released, and the result says so. |
 | Project URIs in the cache | A project URI is what that project called itself and is not verified, so a project can file its bytes under another project's URI. Only this list is misled by that; the loader re-checks every digest when it uses it, so the wrong bytes can never be handed over. The dialog states both facts on screen. |
 | Unreachable project URIs | A project URI serves nothing until its author publishes, so an unpublished project answers 404. The dialog never fetches a URI and never treats reachability as a reason to release anything, because that would clear the cache of every project still being written. |
 | Project titles | The cache has no titles, and a project URI is deliberately opaque so that renaming a project does not rename its address. `label cached project [URI] as [TITLE]` records a readable name to show beside the URI; a row with no recorded title says so. |

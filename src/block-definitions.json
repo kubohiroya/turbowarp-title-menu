@@ -121,7 +121,7 @@
       "opcode": "showExtensionCache",
       "blockType": "COMMAND",
       "text": "show extension cache manager",
-      "description": "Shows the dialog that lists the cached extension bytes per project and releases them."
+      "description": "Shows the cache manager, which lists every cached copy each project uses and releases the ones selected."
     },
     {
       "opcode": "setCachedProjectTitle",

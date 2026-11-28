@@ -12,6 +12,8 @@ export interface FakeElement {
   accept: string;
   files: unknown[] | null;
   disabled: boolean;
+  checked: boolean;
+  className: string;
   removed: boolean;
   appendChild(child: FakeElement): FakeElement;
   append(...children: FakeElement[]): void;
@@ -42,6 +44,8 @@ export function fakeElement(tagName: string): FakeElement {
     accept: '',
     files: null,
     disabled: false,
+    checked: false,
+    className: '',
     removed: false,
     appendChild(child: FakeElement) {
       children.push(child);

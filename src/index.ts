@@ -6,6 +6,7 @@ import {createDslStore} from './dsl-store.js';
 import {dslOpenEventName, dslReloadEventName} from './events.js';
 import {createExtensionCache} from './extension-cache.js';
 import {createExtensionCacheDialog} from './extension-cache-dialog.js';
+import {createCacheManagerDialog} from './cache-manager-dialog.js';
 import {createTitleDialog} from './title-dialog.js';
 import {TurboWarpTitleMenuExtension} from './extension.js';
 
@@ -13,6 +14,7 @@ const publicApi = Object.freeze({
   createApplicationMenu: createAppShellApplicationMenu,
   createDslFilesDialog,
   createDslStore,
+  createCacheManagerDialog,
   createExtensionCache,
   createExtensionCacheDialog,
   createTitleDialog,

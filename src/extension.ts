@@ -6,12 +6,12 @@ import {createDslFilesDialog, type DslFilesDialog} from './dsl-files-dialog';
 import {createDslStore, readDslFile, type DslFileRecord, type DslStore} from './dsl-store';
 import {dispatchDslSourceEvent, dslOpenEventName, dslReloadEventName} from './events';
 import {createExtensionCache, type ExtensionCache} from './extension-cache';
-import {createExtensionCacheDialog, type ExtensionCacheDialog} from './extension-cache-dialog';
+import {createCacheManagerDialog, type CacheManagerDialog} from './cache-manager-dialog';
 import {
   describeCacheError,
   describeStoreError,
   dslFilesLocales,
-  extensionCacheLocales,
+  cacheManagerLocales,
   menuLocales,
   titleLocales,
   type SupportedLocale
@@ -60,7 +60,7 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
   private titleDialog: TitleDialog | null = null;
   private applicationMenu: ApplicationMenu | null = null;
   private filesDialog: DslFilesDialog | null = null;
-  private cacheDialog: ExtensionCacheDialog | null = null;
+  private cacheDialog: CacheManagerDialog | null = null;
   private store: DslStore | null = null;
   private cache: ExtensionCache | null = null;
   /**
@@ -351,19 +351,16 @@ export class TurboWarpTitleMenuExtension implements TurboWarpExtension {
    * place to look for "what went wrong with storage" and the two stores fail for the same
    * reasons — blocked storage, a full quota — even though they are separate databases.
    */
-  private ensureCacheDialog(): ExtensionCacheDialog {
+  private ensureCacheDialog(): CacheManagerDialog {
     if (this.cacheDialog) return this.cacheDialog;
     const mount = stageMount();
-    this.cacheDialog = createExtensionCacheDialog({
+    this.cacheDialog = createCacheManagerDialog({
       document: globalThis.document,
       ...(mount ? {mount} : {}),
-      locales: extensionCacheLocales,
+      locales: cacheManagerLocales,
       initialLocale: this.locale(),
-      listProjects: () => this.requireCache().listProjects(),
-      listDigests: (bucket) => this.requireCache().listDigests(bucket),
-      totals: () => this.requireCache().totals(),
-      onReleaseProject: (bucket) => this.requireCache().releaseProject(bucket),
-      onReleaseDigest: (bucket, key) => this.requireCache().releaseDigests(bucket, [key]),
+      listAssets: () => this.requireCache().listAssets(),
+      onRelease: (claims) => this.requireCache().releaseAssets(claims),
       describeError: (error) => describeCacheError(this.locale(), error),
       onError: (error) => {
         this.lastError = describeCacheError(this.locale(), error);

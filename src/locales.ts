@@ -2,6 +2,7 @@ import type {DslFilesDialogLocaleText} from './dsl-files-dialog';
 import type {DslStoreErrorCode} from './dsl-store';
 import type {ExtensionCacheErrorCode} from './extension-cache';
 import type {ExtensionCacheDialogLocaleText} from './extension-cache-dialog';
+import type {CacheManagerLocaleText} from './cache-manager-dialog';
 import type {TitleDialogLocaleText} from './title-dialog';
 
 export type SupportedLocale = 'en' | 'ja';
@@ -135,6 +136,94 @@ export const extensionCacheLocales: Readonly<
     releaseResult: '{released}件を手放し、{freed}を空けました。',
     lastUsed: '最終利用 {date}',
     originalSize: 'JavaScript {bytes}'
+  }
+});
+
+/** Text for the cache manager table. */
+export const cacheManagerLocales: Readonly<Record<SupportedLocale, CacheManagerLocaleText>> = Object.freeze({
+  en: {
+    title: 'Cache manager',
+    notice:
+      'Each row is one project\'s use of one cached copy. Releasing a use only removes it from this browser\'s cache; the project still refers to the same address and downloads it again the next time it is opened, so it may not work offline until then. A copy another project still uses stays. Names, addresses and project titles are what the projects recorded and are not verified; the loader checks every copy by its SHA-256 before using it.',
+    search: 'Search names, addresses, projects or digests',
+    kindFilter: 'Kind',
+    kindAll: 'All kinds',
+    kinds: {
+      costume: 'Costume',
+      backdrop: 'Backdrop',
+      sound: 'Sound',
+      document: 'Document',
+      extension: 'Extension',
+      other: 'Other',
+      unknown: 'Unknown'
+    },
+    projectFilter: 'Project',
+    projectAll: 'All projects',
+    shared: 'Shared by every project',
+    untitled: '(no title recorded)',
+    unnamed: '(no name recorded)',
+    columns: {select: 'Select', name: 'Name', kind: 'Kind', project: 'Project', size: 'Size', lastAccess: 'Last used'},
+    total: '{entries} cached copies, {bytes} ({uses} uses).',
+    shown: 'Showing {shown} of {uses}.',
+    selectShown: 'Select shown ({count})',
+    selectAll: 'Select all in the cache ({count})',
+    clearSelection: 'Clear selection',
+    selection: '{uses} selected. Frees about {bytes}; {kept} copies stay because another project uses them.',
+    release: 'Release selected',
+    confirmRelease: 'Release {uses}?',
+    cancel: 'Cancel',
+    close: 'Close',
+    refresh: 'Reload',
+    loading: 'Reading the cache…',
+    empty: 'Nothing is cached. Opening a project that uses remote data fills this.',
+    noMatches: 'Nothing matches the search.',
+    releaseResult: 'Released {released} of {requested} and freed {freed}.',
+    releaseStale: '{missing} had already been released elsewhere.',
+    sharedBy: 'used by {uses} projects',
+    redacted: 'Address shortened: credentials or a query were removed',
+    digest: 'SHA-256 {key}'
+  },
+  ja: {
+    title: 'キャッシュ管理',
+    notice:
+      '1行は、1つの作品がキャッシュの1つの実体を使っていることを表します。手放すと、このブラウザーのキャッシュから外れるだけです。作品は同じ URL を参照し続け、次に開いたときに取得し直すので、それまではオフラインで使えないことがあります。別の作品が使っている実体は残ります。名前・URL・作品名は作品が記録したもので、検証していません。Loader は使う前に SHA-256 で照合します。',
+    search: '名前・URL・作品・digest で検索',
+    kindFilter: '種類',
+    kindAll: 'すべての種類',
+    kinds: {
+      costume: 'コスチューム',
+      backdrop: '背景',
+      sound: '音',
+      document: '文書',
+      extension: '機能拡張',
+      other: 'その他',
+      unknown: '不明'
+    },
+    projectFilter: '作品',
+    projectAll: 'すべての作品',
+    shared: 'すべての作品で共有',
+    untitled: '（作品名の記録なし）',
+    unnamed: '（名前の記録なし）',
+    columns: {select: '選択', name: '名前', kind: '種類', project: '作品', size: '容量', lastAccess: '最終利用'},
+    total: 'キャッシュの実体 {entries}件、{bytes}（利用 {uses}件）。',
+    shown: '{uses}件中 {shown}件を表示。',
+    selectShown: '表示中を選択（{count}件）',
+    selectAll: 'キャッシュ全体を選択（{count}件）',
+    clearSelection: '選択を解除',
+    selection: '{uses}件を選択中。約 {bytes} 空きます。{kept}件の実体は別の作品が使っているので残ります。',
+    release: '選択を手放す',
+    confirmRelease: '{uses}件を手放す?',
+    cancel: 'やめる',
+    close: '閉じる',
+    refresh: '読み直す',
+    loading: 'キャッシュを読んでいます…',
+    empty: 'キャッシュは空です。リモートのデータを使う作品を開くと入ります。',
+    noMatches: '検索に合うものはありません。',
+    releaseResult: '{requested}件中 {released}件を手放し、{freed} 空けました。',
+    releaseStale: '{missing}件は別の場所で既に手放されていました。',
+    sharedBy: '{uses}作品が利用',
+    redacted: 'URL を短縮しました（資格情報やクエリを除去）',
+    digest: 'SHA-256 {key}'
   }
 });
 
