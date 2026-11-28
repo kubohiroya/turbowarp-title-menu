@@ -1,10 +1,10 @@
-import {isRecord, requireDocument, requireElement} from './dom';
+import {isRecord, requireDocument, requireElement} from './dom.js';
 import type {
   CachedDigestSummary,
   CachedProjectSummary,
   CacheReleaseResult,
   ExtensionCacheTotals
-} from './extension-cache';
+} from './extension-cache.js';
 
 /**
  * The stage-mounted manager for cached extension bytes.

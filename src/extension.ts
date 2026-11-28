@@ -1,12 +1,12 @@
 import {createAppShellApplicationMenu, resolveAppShellLocale} from '@kubohiroya/turbowarp-app-shell';
 
 import definitions from './block-definitions.json';
-import {extensionConfig} from './config';
-import {createDslFilesDialog, type DslFilesDialog} from './dsl-files-dialog';
-import {createDslStore, readDslFile, type DslFileRecord, type DslStore} from './dsl-store';
-import {dispatchDslSourceEvent, dslOpenEventName, dslReloadEventName} from './events';
-import {createExtensionCache, type ExtensionCache} from './extension-cache';
-import {createCacheManagerDialog, type CacheManagerDialog} from './cache-manager-dialog';
+import {extensionConfig} from './config.js';
+import {createDslFilesDialog, type DslFilesDialog} from './dsl-files-dialog.js';
+import {createDslStore, readDslFile, type DslFileRecord, type DslStore} from './dsl-store.js';
+import {dispatchDslSourceEvent, dslOpenEventName, dslReloadEventName} from './events.js';
+import {createExtensionCache, type ExtensionCache} from './extension-cache.js';
+import {createCacheManagerDialog, type CacheManagerDialog} from './cache-manager-dialog.js';
 import {
   describeCacheError,
   describeStoreError,
@@ -15,8 +15,8 @@ import {
   menuLocales,
   titleLocales,
   type SupportedLocale
-} from './locales';
-import {createTitleDialog, type TitleDialog} from './title-dialog';
+} from './locales.js';
+import {createTitleDialog, type TitleDialog} from './title-dialog.js';
 
 type ApplicationMenu = ReturnType<typeof createAppShellApplicationMenu>;
 

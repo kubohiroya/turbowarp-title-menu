@@ -1,4 +1,4 @@
-import { type DslFileSummary, type DslSort } from './dsl-store';
+import { type DslFileSummary, type DslSort } from './dsl-store.js';
 /**
  * The stage-mounted DSL file manager.
  *

@@ -1,7 +1,7 @@
-import type { DslFilesDialogLocaleText } from './dsl-files-dialog';
-import type { ExtensionCacheDialogLocaleText } from './extension-cache-dialog';
-import type { CacheManagerLocaleText } from './cache-manager-dialog';
-import type { TitleDialogLocaleText } from './title-dialog';
+import type { DslFilesDialogLocaleText } from './dsl-files-dialog.js';
+import type { ExtensionCacheDialogLocaleText } from './extension-cache-dialog.js';
+import type { CacheManagerLocaleText } from './cache-manager-dialog.js';
+import type { TitleDialogLocaleText } from './title-dialog.js';
 export type SupportedLocale = 'en' | 'ja';
 export interface MenuActionLabels {
     files: string;

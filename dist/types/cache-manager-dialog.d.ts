@@ -1,5 +1,5 @@
-import { type CacheAssetRow } from './cache-asset-model';
-import type { CacheReleaseResult } from './extension-cache';
+import { type CacheAssetRow } from './cache-asset-model.js';
+import type { CacheReleaseResult } from './extension-cache.js';
 /**
  * The cache manager: a table of every use of every cached copy, with search, filters, sorting,
  * selection and release.

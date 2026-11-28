@@ -1,4 +1,4 @@
-import {ensureRelativeMount, invokeSafely, requireDocument, requireElement} from './dom';
+import {ensureRelativeMount, invokeSafely, requireDocument, requireElement} from './dom.js';
 
 export type TitleMenuLocale = string;
 
