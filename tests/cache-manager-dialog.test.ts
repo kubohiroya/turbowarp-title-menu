@@ -158,4 +158,43 @@ describe('cache manager dialog', () => {
     root.keyDown('Escape');
     expect(root.style.display).toBe('none');
   });
+
+  it('embeds only selected uses of the open project and says which other projects need opening', async () => {
+    let settle: (value: {released: number; freed: number; kept: number}) => void = () => {};
+    const embed = vi.fn(async () => ({
+      embedded: 1,
+      skipped: [{key: pop, reason: 'changed' as const}],
+      released: new Promise<{released: number; freed: number; kept: number}>((resolve) => (settle = resolve))
+    }));
+    const {dialog, root, listAssets} = open({embedding: {currentBucket: () => one, embed}});
+    await dialog.show('en');
+    find(root, 'data-cache-select-all')[0]!.click();
+    expect(find(root, 'data-cache-embed')[0]!.textContent).toBe('Embed 2 in this project');
+    expect(find(root, 'data-cache-embed-others')[0]!.textContent).toContain('1 selected belong to other projects');
+    const format = find(root, 'data-cache-embed-format')[0]!;
+    (format as unknown as {value: string}).value = 'embedded-data';
+    format.dispatch('change');
+    find(root, 'data-cache-embed-release')[0]!.click();
+    await vi.waitFor(() => expect(text(root)).toContain('Embedded 1 of 2 into the open project.'));
+    expect(embed).toHaveBeenCalledWith([cat, pop], {format: 'embedded-data', release: true});
+    expect(text(root)).toContain('1 could not be embedded: the project data no longer matches the digest.');
+    expect(text(root)).toContain('released once the project is saved');
+    const listings = listAssets.mock.calls.length;
+    settle({released: 1, freed: 1000, kept: 0});
+    await vi.waitFor(() => expect(text(root)).toContain('The project was saved: released 1 and freed 1000 B. 0 were kept.'));
+    expect(listAssets.mock.calls.length).toBe(listings + 1);
+  });
+
+  it('offers no embedding without an open project to embed into', async () => {
+    const plain = open();
+    await plain.dialog.show('en');
+    find(plain.root, 'data-cache-select-all')[0]!.click();
+    expect(find(plain.root, 'data-cache-embed')).toEqual([]);
+
+    const unsaved = open({embedding: {currentBucket: () => undefined, embed: vi.fn()}});
+    await unsaved.dialog.show('ja');
+    find(unsaved.root, 'data-cache-select-all')[0]!.click();
+    expect(find(unsaved.root, 'data-cache-embed')).toEqual([]);
+    expect(find(unsaved.root, 'data-cache-embed-others')[0]!.textContent).toContain('3件は別の作品');
+  });
 });

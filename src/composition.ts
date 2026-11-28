@@ -35,7 +35,16 @@ export type {
 /** @deprecated Use `createCacheManagerDialog`, which the menu now opens. Kept for existing hosts. */
 export {createExtensionCacheDialog} from './extension-cache-dialog.js';
 export {createCacheManagerDialog} from './cache-manager-dialog.js';
-export type {CacheManagerDialog, CacheManagerDialogOptions, CacheManagerLocaleText, CacheManagerPhase} from './cache-manager-dialog.js';
+export type {
+  CacheEmbedFormat,
+  CacheEmbeddingHost,
+  CacheEmbedOutcome,
+  CacheEmbedSkipReason,
+  CacheManagerDialog,
+  CacheManagerDialogOptions,
+  CacheManagerLocaleText,
+  CacheManagerPhase
+} from './cache-manager-dialog.js';
 export {
   cacheAssetRows,
   cacheAssetTotals,

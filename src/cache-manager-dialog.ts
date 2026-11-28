@@ -65,6 +65,51 @@ export interface CacheManagerLocaleText {
   redacted: string;
   /** `{key}` is substituted. */
   digest: string;
+  /** What embedding does: it changes the open project, unsaved, and keeps the address. */
+  embedNotice: string;
+  embedFormat: string;
+  embedFormats: Record<CacheEmbedFormat, string>;
+  /** `{uses}` is substituted: selected uses of the project open in the host. */
+  embed: string;
+  /** `{uses}` is substituted. */
+  embedAndRelease: string;
+  /** `{uses}` is substituted: selected uses that belong to other projects. */
+  embedOtherProjects: string;
+  /** `{embedded}` and `{requested}` are substituted. */
+  embedResult: string;
+  /** `{count}` and `{reasons}` are substituted. */
+  embedSkipped: string;
+  embedSkipReasons: Record<CacheEmbedSkipReason, string>;
+  /** Shown while the release waits for the project to be saved. */
+  embedReleasePending: string;
+  /** `{released}`, `{freed}` and `{kept}` are substituted. */
+  embedReleaseResult: string;
+}
+
+export type CacheEmbedFormat = 'embedded-data' | 'embedded-file';
+export type CacheEmbedSkipReason = 'not-in-project' | 'changed' | 'unsupported';
+
+/** What the host reports after embedding selected copies into its open project. */
+export interface CacheEmbedOutcome {
+  readonly embedded: number;
+  readonly skipped: readonly {readonly key: string; readonly reason: CacheEmbedSkipReason}[];
+  /**
+   * Present when a release was asked for: it settles once the host saw the project saved and
+   * released that project's claims, with how many it kept (other projects and the shared area
+   * always stay). It never settles if the project is not saved.
+   */
+  readonly released?: Promise<CacheReleaseResult & {readonly kept: number}>;
+}
+
+/**
+ * Embedding into the project the host has open. The dialog never decides which references
+ * change: it passes digests of rows filed under the open project, and the host embeds only what
+ * that project pins with the same digest, reporting the rest.
+ */
+export interface CacheEmbeddingHost {
+  /** The bucket the open project's rows are filed under, or undefined when it has none. */
+  currentBucket(): string | undefined;
+  embed(keys: readonly string[], options: {format: CacheEmbedFormat; release: boolean}): Promise<CacheEmbedOutcome>;
 }
 
 export interface CacheManagerDialogOptions {
@@ -74,6 +119,8 @@ export interface CacheManagerDialogOptions {
   initialLocale?: string;
   listAssets(): Promise<readonly CacheAssetRow[]>;
   onRelease(claims: readonly {bucket: string; key: string}[]): CacheReleaseResult | Promise<CacheReleaseResult>;
+  /** Offered only when the host has an open project to embed into. */
+  embedding?: CacheEmbeddingHost;
   /** `auto` follows the browser; a host with its own theme passes `light` or `dark`. */
   colorScheme?: 'light' | 'dark' | 'auto';
   describeError?(error: unknown): string;
@@ -169,6 +216,7 @@ export function createCacheManagerDialog(options: CacheManagerDialogOptions): Ca
     direction: 'descending'
   };
   let confirming = false;
+  let embedFormat: CacheEmbedFormat = 'embedded-file';
   let busy = false;
   let status = '';
   let result = '';
@@ -322,6 +370,89 @@ export function createCacheManagerDialog(options: CacheManagerDialogOptions): Ca
       busy = false;
     }
     await reload();
+  }
+
+  /** Selected rows filed under the open project, and how many selected rows are not. */
+  function embeddable(): {keys: string[]; uses: number; others: number} {
+    const bucket = options.embedding?.currentBucket();
+    const chosen = rows.filter((row) => selected.has(row.id));
+    const mine = bucket === undefined ? [] : chosen.filter((row) => row.bucket === bucket);
+    return {keys: [...new Set(mine.map((row) => row.key))], uses: mine.length, others: chosen.length - mine.length};
+  }
+
+  async function embedSelected(release: boolean): Promise<void> {
+    const embedding = options.embedding;
+    const {keys} = embeddable();
+    if (!embedding || !keys.length) return;
+    busy = true;
+    confirming = false;
+    status = '';
+    render();
+    try {
+      const done = await embedding.embed(keys, {format: embedFormat, release});
+      const text = textFor(locales, locale);
+      result = fill(text.embedResult, {embedded: String(done.embedded), requested: String(keys.length)});
+      if (done.skipped.length) {
+        const reasons = [...new Set(done.skipped.map((skip) => text.embedSkipReasons[skip.reason] ?? skip.reason))].join(', ');
+        result += ` ${fill(text.embedSkipped, {count: String(done.skipped.length), reasons})}`;
+      }
+      if (done.released) {
+        result += ` ${text.embedReleasePending}`;
+        void done.released.then(
+          async (outcome) => {
+            if (disposed) return;
+            const later = textFor(locales, locale);
+            result = fill(later.embedReleaseResult, {
+              released: String(outcome.released),
+              freed: formatSize(outcome.freed),
+              kept: String(outcome.kept)
+            });
+            await reload();
+          },
+          (error: unknown) => {
+            if (!disposed) fail(error);
+          }
+        );
+      }
+      selected = new Set();
+    } catch (error) {
+      fail(error);
+    } finally {
+      busy = false;
+    }
+    await reload();
+  }
+
+  function renderEmbedding(text: CacheManagerLocaleText): void {
+    if (!options.embedding) return;
+    const {uses, others} = embeddable();
+    if (uses > 0) {
+      const select = element('select');
+      select.setAttribute('data-cache-embed-format', 'true');
+      select.setAttribute('aria-label', text.embedFormat);
+      select.disabled = busy;
+      for (const format of ['embedded-file', 'embedded-data'] as const) select.appendChild(option(format, text.embedFormats[format], embedFormat));
+      select.value = embedFormat;
+      select.addEventListener('change', () => {
+        embedFormat = select.value === 'embedded-data' ? 'embedded-data' : 'embedded-file';
+      });
+      selectionBar.append(
+        select,
+        button(fill(text.embed, {uses: String(uses)}), () => void embedSelected(false), {'data-cache-embed': 'true'}),
+        button(fill(text.embedAndRelease, {uses: String(uses)}), () => void embedSelected(true), {'data-cache-embed-release': 'true'})
+      );
+    }
+    if (others > 0) {
+      const line = element('span', fill(text.embedOtherProjects, {uses: String(others)}));
+      line.className = 'tm-muted';
+      line.setAttribute('data-cache-embed-others', 'true');
+      selectionBar.appendChild(line);
+    }
+    if (uses > 0) {
+      const line = element('span', text.embedNotice);
+      line.className = 'tm-muted';
+      selectionBar.appendChild(line);
+    }
   }
 
   function setSort(column: CacheAssetSortColumn): void {
@@ -513,6 +644,7 @@ export function createCacheManagerDialog(options: CacheManagerDialogOptions): Ca
             }, {'data-cache-release': 'true'})
           );
         }
+        renderEmbedding(text);
       }
     }
     renderTable(text, shown);
