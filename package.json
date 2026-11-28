@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-title-menu",
-  "version": "0.8.4",
+  "version": "0.9.0",
   "description": "Reusable title, application menu, and DSL source storage controls for TurboWarp.",
   "author": {
     "name": "Hiroya Kubo",
