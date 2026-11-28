@@ -12,15 +12,15 @@ importers:
         specifier: 0.6.1
         version: 0.6.1
       '@kubohiroya/turbowarp-extension-loader':
-        specifier: 0.16.2
-        version: 0.16.2
+        specifier: 0.16.3
+        version: 0.16.3
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.5
         version: 9.39.5
       '@kubohiroya/turbowarp-extension-manifest':
-        specifier: 0.8.0
-        version: 0.8.0
+        specifier: 0.9.1
+        version: 0.9.1
       '@kubohiroya/vite-plugin-turbowarp-extension':
         specifier: 0.12.0
         version: 0.12.0(vite@8.3.4(@types/node@24.13.3)(esbuild@0.28.1))
@@ -272,12 +272,12 @@ packages:
     resolution: {integrity: sha512-IHJWp9QGjQfGyS/et3YFQgsKwaHqEEFMPJw/yXY6mmcaLiscPdfI9BF1uFEeVzjuQU1aq7EiiaGu2UBDEWoFvQ==}
     engines: {node: '>=24'}
 
-  '@kubohiroya/turbowarp-extension-loader@0.16.2':
-    resolution: {integrity: sha512-Ef1Ycy/+SIoFy3/7tTOjLJGXKADVBNPZIbnAKnFVZwwLy2U0Wp0vAG0QwnZLQfTwYWqeE3JznavXxhcaR8a9bw==}
+  '@kubohiroya/turbowarp-extension-loader@0.16.3':
+    resolution: {integrity: sha512-mrHFrr/Zh7U6cCwiOGKAljOpIdaXh7GTshKCji6t0X+IHzAkJpDbyh1+FhwMV0y3DunhNJXsidH71Iq1mUn8Ew==}
     engines: {node: '>=26'}
 
-  '@kubohiroya/turbowarp-extension-manifest@0.8.0':
-    resolution: {integrity: sha512-mSVMD34rgwefDBEjCSVfDXCe0bpT3S0CdSaTSDjUCRLBsvNpDupeznVWYuk6VsoMYJ34iqTYbRnS7TLItJX46A==}
+  '@kubohiroya/turbowarp-extension-manifest@0.9.1':
+    resolution: {integrity: sha512-/RfNPvFGFskDPTIo1rzNCdfkNVp7XdyIPG0TGqRR09CHm5eonJPfDanDvNFQcsUIuPfnlUyVaYJXDUiqzpgHDA==}
     engines: {node: '>=24'}
 
   '@kubohiroya/vite-plugin-turbowarp-extension@0.12.0':
@@ -1239,9 +1239,9 @@ snapshots:
 
   '@kubohiroya/turbowarp-app-shell@0.6.1': {}
 
-  '@kubohiroya/turbowarp-extension-loader@0.16.2': {}
+  '@kubohiroya/turbowarp-extension-loader@0.16.3': {}
 
-  '@kubohiroya/turbowarp-extension-manifest@0.8.0': {}
+  '@kubohiroya/turbowarp-extension-manifest@0.9.1': {}
 
   '@kubohiroya/vite-plugin-turbowarp-extension@0.12.0(vite@8.3.4(@types/node@24.13.3)(esbuild@0.28.1))':
     dependencies:
